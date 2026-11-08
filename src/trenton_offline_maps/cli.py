@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+from .paths import output_path
+from .constants import DEFAULT_CENTER_LON_DEG, DEFAULT_CENTER_LAT_DEG, DEFAULT_EXTENT_EARTH_RADII
 
 from .earth import demo_ground_track, matplotlib_globe, matplotlib_world, plotly_globe
 from .trajectory import EcefTrajectory, read_trajectories
@@ -18,15 +20,14 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--ecef", type=Path, action="append", default=[], metavar="CSV_OR_JSON",
                         help="Local ECEF trajectory file (repeatable); never interpreted as ECI")
     parser.add_argument("--at-s", type=float, default=None, help="Snapshot marker time, seconds from epoch")
-    parser.add_argument("--center-lon", type=float, default=-30.)
-    parser.add_argument("--center-lat", type=float, default=22.)
-    parser.add_argument("--extent-earth-radii", type=float, default=1.35)
+    parser.add_argument("--center-lon", type=float, default=DEFAULT_CENTER_LON_DEG, help="Camera longitude in degrees")
+    parser.add_argument("--center-lat", type=float, default=DEFAULT_CENTER_LAT_DEG, help="Camera latitude in degrees")
+    parser.add_argument("--extent-earth-radii", type=float, default=DEFAULT_EXTENT_EARTH_RADII)
     args = parser.parse_args(argv)
     trajectories: list[EcefTrajectory] = []
     for source in args.ecef:
         trajectories.extend(read_trajectories(source))
-    path = Path(args.output)
-    path.parent.mkdir(parents=True, exist_ok=True)
+    path = output_path(args.output)
     if args.track:
         # Compatibility mode for the older ground-track demo. ECEF paths use
         # the unified, typed trajectory model instead of this legacy overlay.
@@ -45,7 +46,7 @@ def main(argv: list[str] | None = None) -> None:
             canvas_globe(path, track=track, mode=args.mode,
                          center_lon=args.center_lon, center_lat=args.center_lat)
         elif args.renderer == "svg":
-            from . import save_svg
+            from .svg import save_svg
             save_svg(str(path), tracks=[track], mode=args.mode)
         else:
             parser.error("--track cannot produce time series: no timestamps supplied")

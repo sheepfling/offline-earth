@@ -4,11 +4,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from math import isfinite
 from pathlib import Path
+from .paths import PathInput, output_path
+from .geometry import Degrees, ViewMode
+from .constants import (DEFAULT_CENTER_LON_DEG, DEFAULT_CENTER_LAT_DEG, DEFAULT_EXTENT_EARTH_RADII)
 from typing import Literal, Sequence
 
-from . import save_svg
+from .svg import save_svg
 from .canvas import canvas_globe
-from .earth import ViewMode, matplotlib_globe, matplotlib_world, plotly_globe
+from .earth import matplotlib_globe, matplotlib_world, plotly_globe
 from .timeseries import matplotlib_ecef_timeseries
 from .trajectory import EcefTrajectory
 
@@ -17,14 +20,18 @@ Backend = Literal["svg", "map", "globe", "canvas", "plotly", "timeseries"]
 
 @dataclass(frozen=True, slots=True)
 class RenderSpec:
-    """Explicit display choices; doesn't imply ECI conversion or orbit propagation."""
+    """Display choices. center_lon/center_lat are degrees, never radians.
+
+    Camera names remain compatible; annotations expose their angular units.
+    No ECI conversion or orbit propagation is implied.
+    """
 
     backend: Backend = "map"
     mode: ViewMode = "combined"
     at_s: float | None = None
-    center_lon: float = -30.0
-    center_lat: float = 22.0
-    extent_earth_radii: float = 1.35
+    center_lon: Degrees = DEFAULT_CENTER_LON_DEG
+    center_lat: Degrees = DEFAULT_CENTER_LAT_DEG
+    extent_earth_radii: float = DEFAULT_EXTENT_EARTH_RADII
 
     def __post_init__(self) -> None:
         if self.backend not in ("svg", "map", "globe", "canvas", "plotly", "timeseries"):
@@ -43,7 +50,7 @@ class RenderSpec:
 
 def render_ecef(
     trajectories: Sequence[EcefTrajectory],
-    output: str | Path,
+    output: PathInput,
     *,
     spec: RenderSpec = RenderSpec(),
 ) -> Path:
@@ -59,8 +66,7 @@ def render_ecef(
     epochs = {t.epoch_utc for t in trajectories}
     if len(epochs) > 1:
         raise ValueError("All trajectories must share the same epoch_utc (or all omit it)")
-    path = Path(output)
-    path.parent.mkdir(parents=True, exist_ok=True)
+    path = output_path(output)
     if spec.backend == "svg":
         save_svg(str(path), trajectories=list(trajectories), at_s=spec.at_s,
                  mode=spec.mode)

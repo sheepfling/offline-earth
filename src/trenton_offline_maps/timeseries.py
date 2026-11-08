@@ -1,13 +1,14 @@
 """Optional Matplotlib ECEF coordinate-vs-time renderer (all units explicit)."""
 from __future__ import annotations
 
-from pathlib import Path
+from .paths import PathInput, output_path
+from .constants import METRES_PER_KM
 from typing import Sequence
 from .trajectory import EcefTrajectory
 
 
 def matplotlib_ecef_timeseries(
-    path: str | Path, trajectories: Sequence[EcefTrajectory], *,
+    path: PathInput, trajectories: Sequence[EcefTrajectory], *,
     unit: str = "km", title: str = "ECEF position vs time",
 ) -> None:
     """Plot x(t), y(t), z(t) without transforming or propagating inputs."""
@@ -16,7 +17,7 @@ def matplotlib_ecef_timeseries(
     import matplotlib.pyplot as plt
     if not trajectories:
         raise ValueError("At least one trajectory required")
-    factor = {"m": 1.0, "km": 1000.0}.get(unit)
+    factor = {"m": 1.0, "km": METRES_PER_KM}.get(unit)
     if factor is None:
         raise ValueError("unit must be m or km")
     fig, axes = plt.subplots(3, 1, figsize=(12, 8.2), sharex=True, dpi=145)
@@ -35,6 +36,5 @@ def matplotlib_ecef_timeseries(
     axes[-1].set_xlabel("Time relative to epoch (s)", color="#d9e6f0")
     fig.suptitle(title, color="#ecf4ff", fontsize=16, fontweight="bold")
     fig.tight_layout(rect=(0,0,1,.96))
-    Path(path).parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(path, facecolor=fig.get_facecolor())
+    fig.savefig(output_path(path), facecolor=fig.get_facecolor())
     plt.close(fig)

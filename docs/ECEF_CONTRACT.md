@@ -103,3 +103,17 @@ values raise `ValueError` before positions are interpreted. No conversion is
 performed. Legacy JSON omitting any or all metadata remains supported and uses
 ECEF metres and elapsed seconds, as also expressed by `ecef_m` and `time_s`.
 This applies to wrapped trajectory collections and single-trajectory JSON.
+
+## Public paths and coordinate types
+
+All public file inputs/outputs accept `PathInput` (`str | os.PathLike[str]`).
+Shared I/O helpers normalize to `pathlib.Path`; writers create parent directories.
+`center_lon` and `center_lat` always mean **degrees**, not radians, in Python and
+CLI APIs. Their `Degrees` annotations carry that unit while keeping existing
+keyword names compatible. Internal trigonometry converts degrees to radians.
+
+Ground-track points are `LonLatDegrees(lon_deg, lat_deg)`; time ranges expose
+`start_s`/`end_s`, and projected points expose Earth-radius coordinates and visibility.
+These named tuples preserve unpacking/indexing and ordinary tuple input compatibility.
+Assets, physical/display constants, and camera/seam geometry are independent shared
+modules. Renderers consume them; Canvas does not import the optional Earth renderer.

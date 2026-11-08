@@ -12,13 +12,12 @@ from bisect import bisect_right
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from math import atan2, cos, degrees, hypot, isfinite, radians, sin, sqrt
-from pathlib import Path
 from typing import Iterable, Sequence
 
-WGS84_A_M = 6_378_137.0
-WGS84_F = 1.0 / 298.257223563
-WGS84_E2 = WGS84_F * (2.0 - WGS84_F)
-WGS84_B_M = WGS84_A_M * (1.0 - WGS84_F)
+from .constants import WGS84_A_M, WGS84_F, WGS84_E2, WGS84_B_M, EARTH_RADIUS_M
+from .geometry import (Degrees, LonLatDegrees, TimeRangeSeconds, OrthographicPoint,
+                       camera_basis, split_antimeridian)
+from .paths import PathInput, input_path, output_path
 
 
 @dataclass(frozen=True, slots=True)
@@ -134,8 +133,8 @@ class EcefTrajectory:
         return cls(name=name, samples=tuple(samples), color=color, epoch_utc=epoch_utc)
 
     @property
-    def time_range(self) -> tuple[float, float]:
-        return (self.samples[0].t_s, self.samples[-1].t_s)
+    def time_range(self) -> TimeRangeSeconds:
+        return TimeRangeSeconds(self.samples[0].t_s, self.samples[-1].t_s)
 
     def at(self, t_s: float) -> EcefPosition:
         """Piecewise linear ECEF interpolation; reject extrapolation."""
@@ -155,10 +154,10 @@ class EcefTrajectory:
             (a.position.x_m, a.position.y_m, a.position.z_m),
             (b.position.x_m, b.position.y_m, b.position.z_m))))
 
-    def ground_track(self) -> list[tuple[float, float]]:
+    def ground_track(self) -> list[LonLatDegrees]:
         """WGS84 geodetic ground-projection lon/lat, retaining sample order."""
         ll = [ecef_to_geodetic(p.position) for p in self.samples]
-        return [(p.lon_deg, p.lat_deg) for p in ll]
+        return [LonLatDegrees(p.lon_deg, p.lat_deg) for p in ll]
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -167,23 +166,6 @@ class EcefTrajectory:
             "samples": [{"time_s": sample.t_s, "ecef_m": [sample.position.x_m,
                           sample.position.y_m, sample.position.z_m]} for sample in self.samples],
         }
-
-
-def split_antimeridian(track: Sequence[tuple[float, float]]) -> list[list[tuple[float, float]]]:
-    """Split drawing segments at ±180°; never draw a line across the entire map."""
-    segments: list[list[tuple[float, float]]] = []
-    segment: list[tuple[float, float]] = []
-    prev: tuple[float, float] | None = None
-    for point in track:
-        if prev is not None and abs(point[0] - prev[0]) > 180:
-            if len(segment) >= 2:
-                segments.append(segment)
-            segment = []
-        segment.append(point)
-        prev = point
-    if len(segment) >= 2:
-        segments.append(segment)
-    return segments
 
 
 def _parse_epoch(value: object) -> datetime | None:
@@ -208,7 +190,7 @@ def _validate_json_metadata(value: object) -> None:
                              "Coordinate and time conversion is not performed.")
 
 
-def read_trajectories(path: str | Path) -> tuple[EcefTrajectory, ...]:
+def read_trajectories(path: PathInput) -> tuple[EcefTrajectory, ...]:
     """Read UTF-8 .json or long-form .csv (name,time_s,x_m,y_m,z_m).
 
     Coordinates are already ECEF, not ECI; times are seconds relative to
@@ -216,7 +198,7 @@ def read_trajectories(path: str | Path) -> tuple[EcefTrajectory, ...]:
     JSON metadata, when present, must be ECEF/metres/seconds at both the
     document and trajectory levels. Omitted metadata retains the legacy defaults.
     """
-    path = Path(path)
+    path = input_path(path)
     if path.suffix.lower() == ".json":
         raw = json.loads(path.read_text(encoding="utf-8"))
         _validate_json_metadata(raw)
@@ -245,27 +227,24 @@ def read_trajectories(path: str | Path) -> tuple[EcefTrajectory, ...]:
     raise ValueError("Expected .json or .csv input")
 
 
-def write_trajectories(path: str | Path, tracks: Iterable[EcefTrajectory]) -> None:
-    path = Path(path)
+def write_trajectories(path: PathInput, tracks: Iterable[EcefTrajectory]) -> None:
+    path = output_path(path)
     payload = {"frame": "ECEF", "units": "metres", "time_units": "seconds",
                "trajectories": [track.to_dict() for track in tracks]}
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
 def project_orthographic_ecef(
-    position: EcefPosition, center_lon: float, center_lat: float,
-    *, display_radius_m: float = 6_371_000.0,
-) -> tuple[float, float, bool]:
+    position: EcefPosition, center_lon: Degrees, center_lat: Degrees,
+    *, display_radius_m: float = EARTH_RADIUS_M,
+) -> OrthographicPoint:
     """Orthographic globe coordinates (Earth radii) and WGS84 horizon visibility.
 
-    The camera is at infinity along the specified geodetic-looking direction.
+    center_lon and center_lat are degrees. The camera is at infinity along that direction.
     Visibility uses an ellipsoid ray intersection, preserving altitude: a far-side
     satellite may be visible beyond the limb while a surface point is occluded.
     """
-    lon, lat = radians(center_lon), radians(center_lat)
-    forward = (cos(lat) * cos(lon), cos(lat) * sin(lon), sin(lat))
-    east = (-sin(lon), cos(lon), 0.0)
-    north = (-sin(lat) * cos(lon), -sin(lat) * sin(lon), cos(lat))
+    forward, east, north = camera_basis(center_lon, center_lat)
     p = (position.x_m, position.y_m, position.z_m)
     u = sum(a*b for a, b in zip(p, east)) / display_radius_m
     v = sum(a*b for a, b in zip(p, north)) / display_radius_m
@@ -281,4 +260,4 @@ def project_orthographic_ecef(
         lo = (-bb - sqrt_d) / (2*aa)
         hi = (-bb + sqrt_d) / (2*aa)
         visible = not (hi > 1.0 and (lo > 1.0 or cc < -1e-12))
-    return u, v, visible
+    return OrthographicPoint(u, v, visible)

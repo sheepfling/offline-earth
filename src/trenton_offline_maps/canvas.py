@@ -3,22 +3,24 @@ from __future__ import annotations
 
 import base64
 import json
-from pathlib import Path
-from typing import TYPE_CHECKING, Sequence
-if TYPE_CHECKING:
-    from .trajectory import EcefTrajectory
+from .paths import PathInput, output_path
+from .geometry import Degrees, GroundTrack, ViewMode
+from .constants import (DEFAULT_CENTER_LON_DEG, DEFAULT_CENTER_LAT_DEG, DEFAULT_EXTENT_EARTH_RADII)
+from typing import Sequence
+from .trajectory import EcefTrajectory
 
-from . import countries
-from .earth import blue_marble_bytes
+from .assets import countries
+from .assets import blue_marble_bytes
+from .constants import EARTH_RADIUS_M, WGS84_A_M, WGS84_B_M, TEXTURE_WIDTH_PX, TEXTURE_HEIGHT_PX
 
 
 def canvas_globe(
-    path: str | Path, *, track: Sequence[tuple[float, float]] | None = None,
+    path: PathInput, *, track: GroundTrack | None = None,
     trajectories: Sequence["EcefTrajectory"] = (),
-    mode: str = "combined", at_s: float | None = None,
-    center_lon: float = -30.0, center_lat: float = 22.0,
+    mode: ViewMode = "combined", at_s: float | None = None,
+    center_lon: Degrees = DEFAULT_CENTER_LON_DEG, center_lat: Degrees = DEFAULT_CENTER_LAT_DEG,
 ) -> None:
-    """Write HTML containing local imagery, borders, and a CPU-rendered rotatable globe."""
+    """Write HTML containing local imagery, borders, and a CPU-rendered globe; camera longitude/latitude are degrees."""
     from math import isfinite
     if mode not in ("imagery", "political", "combined"):
         raise ValueError("Unrecognized Earth display mode")
@@ -31,7 +33,9 @@ def canvas_globe(
         raise ValueError("at_s outside trajectory time range")
     config = json.dumps(dict(mode=mode, at_s=at_s, center_lon=center_lon,
                              center_lat=center_lat), allow_nan=False)
-    page = _HTML.replace("__INITIAL_CONFIG__", config)
+    constants = json.dumps(dict(radius_m=EARTH_RADIUS_M, a_m=WGS84_A_M, b_m=WGS84_B_M,
+                                texture_width=TEXTURE_WIDTH_PX, texture_height=TEXTURE_HEIGHT_PX))
+    page = _HTML.replace("__EARTH_CONSTANTS__", constants).replace("__INITIAL_CONFIG__", config)
     page = page.replace("__BLUE_MARBLE_BASE64__", base64.b64encode(blue_marble_bytes()).decode("ascii"))
     page = page.replace("__BORDERS_JSON__", json.dumps([c["rings"] for c in countries()], separators=(",", ":")))
     page = page.replace("__TRACK_JSON__", json.dumps(list(track or []), separators=(",", ":")))
@@ -42,8 +46,7 @@ def canvas_globe(
     serialized = json.dumps(ecef, separators=(",", ":"), allow_nan=False)
     serialized = serialized.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
     page = page.replace("__ECEF_JSON__", serialized)
-    Path(path).parent.mkdir(parents=True, exist_ok=True)
-    Path(path).write_text(page, encoding="utf-8")
+    output_path(path).write_text(page, encoding="utf-8")
 
 
 _HTML = r'''<!doctype html>
@@ -89,9 +92,10 @@ const canvas = document.querySelector('#earth');
 const ctx = canvas.getContext('2d',{alpha:false});
 const N=canvas.width, PI=Math.PI, TWO_PI=PI*2, R=N*0.47;
 const initial = __INITIAL_CONFIG__;
+const earthConstants = __EARTH_CONSTANTS__;
 let centerLon=initial.center_lon*PI/180, centerLat=initial.center_lat*PI/180, mode=initial.mode, ready=false;
 for (const id of ['imagery','political','combined']) document.getElementById(id).setAttribute('aria-pressed',String(id===mode));
-let tex=null, mask=null, texW=1800, texH=900, scheduled=false, viewDirty=true;
+let tex=null, mask=null, texW=earthConstants.texture_width, texH=earthConstants.texture_height, scheduled=false, viewDirty=true;
 const baseCanvas=document.createElement('canvas');baseCanvas.width=N;baseCanvas.height=N;
 const baseCtx=baseCanvas.getContext('2d');
 const timeline=document.getElementById('timeline'), timeInput=document.getElementById('time');
@@ -159,11 +163,11 @@ function drawTrack(b) {
  if(open) ctx.stroke(); ctx.shadowBlur=0;
 }
 function xyzVisible(s,b) {
- const Rm=6371000, x=s[1]/Rm,y=s[2]/Rm,z=s[3]/Rm;
+ const Rm=earthConstants.radius_m, x=s[1]/Rm,y=s[2]/Rm,z=s[3]/Rm;
  const u=x*b.e[0]+y*b.e[1]+z*b.e[2];
  const v=x*b.n[0]+y*b.n[1]+z*b.n[2];
  // WGS84 ray/ellipsoid intersection toward camera. Coordinates in Earth radii.
- const wa=1/((6378137/Rm)**2), wb=1/((6356752.314245/Rm)**2);
+ const wa=1/((earthConstants.a_m/Rm)**2), wb=1/((earthConstants.b_m/Rm)**2);
  const aa=wa*(b.f[0]**2+b.f[1]**2)+wb*b.f[2]**2;
  const bb=2*(wa*(x*b.f[0]+y*b.f[1])+wb*z*b.f[2]);
  const cc=wa*(x*x+y*y)+wb*z*z-1;
