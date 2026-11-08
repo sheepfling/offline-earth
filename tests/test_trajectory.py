@@ -4,13 +4,18 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from trenton_offline_maps.visualize import RenderSpec, render_ecef
-from trenton_offline_maps import svg_map
+from trenton_offline_maps import save_svg, svg_map
 from trenton_offline_maps.canvas import canvas_globe
+from trenton_offline_maps.earth import matplotlib_globe, matplotlib_world, plotly_globe
+from trenton_offline_maps.timeseries import matplotlib_ecef_timeseries
 from test_rendering_offline import _Assets
 
 import csv
 import math
 import socket
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -92,10 +97,6 @@ def test_all_outputs_offline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(socket,"socket", blocked)
     monkeypatch.setattr(socket,"getaddrinfo", blocked)
     monkeypatch.setattr(socket,"create_connection", blocked)
-    from trenton_offline_maps import save_svg
-    from trenton_offline_maps.canvas import canvas_globe
-    from trenton_offline_maps.earth import matplotlib_globe, matplotlib_world, plotly_globe
-    from trenton_offline_maps.timeseries import matplotlib_ecef_timeseries
     tr = EcefTrajectory.from_arrays("Demo", [0, 2], [
         (6_800_000, 0, 0), (0, 6_800_000, 0)])
     save_svg(str(tmp_path / "map.svg"), trajectories=[tr], at_s=1)
@@ -208,3 +209,57 @@ def test_trajectory_record_shape_and_copy_isolation():
                       'samples': [{'time_s': 0, 'ecef_m': [7e6, 1, 2]}]}
     record['samples'][0]['ecef_m'][0] = 0
     assert tr.samples[0].position.x_m == 7e6
+
+
+def test_optional_backends_cold_import_and_render_without_network(tmp_path, pytestconfig):
+    # A fresh interpreter prevents collection/other tests from warming imports.
+    # Audit hooks preserve socket's class identity (required by ssl imports).
+    code = r"""
+import sys
+import socket
+from pathlib import Path
+
+roots = ('trenton_offline_maps', 'numpy', 'PIL', 'matplotlib', 'plotly')
+assert not any(name.split('.')[0] in roots for name in sys.modules)
+attempts = []
+def deny_network(event, args):
+    if event.startswith('socket.'):
+        attempts.append(event)
+        raise AssertionError('Network operation forbidden: ' + event)
+sys.addaudithook(deny_network)
+# Prove that both socket creation and DNS are intercepted before imports.
+for probe in (socket.socket, lambda: socket.getaddrinfo('localhost', 80)):
+    try:
+        probe()
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError('Network guard did not intercept probe')
+assert len(attempts) == 2
+attempts.clear()
+sys.path.insert(0, sys.argv[1])
+from trenton_offline_maps.trajectory import EcefTrajectory
+from trenton_offline_maps.visualize import RenderSpec, render_ecef
+tr = EcefTrajectory.from_arrays('cold offline', [0, 2], [(7e6, 0, 0), (7e6, 100, 100)])
+out = Path(sys.argv[2])
+for backend, extension in [('map', 'png'), ('globe', 'png'),
+                           ('timeseries', 'png'), ('plotly', 'html')]:
+    target = render_ecef([tr], out / (backend + '.' + extension),
+                        spec=RenderSpec(backend=backend, at_s=1))
+    data = target.read_bytes()
+    assert len(data) > 1000
+    if extension == 'png':
+        assert data.startswith(b'\x89PNG')
+    else:
+        assert b'Plotly.newPlot' in data
+assert all(root in sys.modules for root in roots)
+assert not attempts, attempts  # Also catches attempted network swallowed by a dependency.
+print('PASS: cold optional imports and four renders; zero socket/DNS attempts')
+"""
+    environment = dict(os.environ, MPLCONFIGDIR=str(tmp_path / 'mpl-cache'))
+    result = subprocess.run(
+        [sys.executable, '-I', '-c', code, str(pytestconfig.rootpath / 'src'), str(tmp_path)],
+        env=environment, capture_output=True, text=True, timeout=120,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert 'zero socket/DNS attempts' in result.stdout
