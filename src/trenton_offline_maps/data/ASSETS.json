@@ -1,0 +1,17 @@
+{
+  "assets": {
+    "blue_marble.jpg": {
+      "sha256": "10f5389b365d7ece89f68a73ce5653fb5692145fde181fc64596d0d87cb89bb8",
+      "size_bytes": 2311548,
+      "source": "basemap-data 2.0.0 bmng.jpg; NASA Blue Marble Next Generation",
+      "license_notes": "NASA imagery; basemap-data distribution LGPL-3.0-or-later"
+    },
+    "countries.json": {
+      "sha256": "b08d5ff4d829782d69faf0367438732a7013bf41503453a0aa3d83ca639b92a0",
+      "size_bytes": 179327,
+      "source": "Natural Earth low-resolution countries via GeoPandas legacy dataset",
+      "license_notes": "Public domain"
+    }
+  },
+  "note": "Inherited resources from supplied v0.3.0 archive; see PROVENANCE.txt. No automatic asset updates."
+}

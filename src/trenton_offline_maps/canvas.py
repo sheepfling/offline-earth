@@ -1,0 +1,272 @@
+"""Single-file offline Canvas globe: no third-party Python, JS, or WebGL."""
+from __future__ import annotations
+
+import base64
+import json
+from pathlib import Path
+from typing import TYPE_CHECKING, Sequence
+if TYPE_CHECKING:
+    from .trajectory import EcefTrajectory
+
+from . import countries
+from .earth import blue_marble_bytes
+
+
+def canvas_globe(
+    path: str | Path, *, track: Sequence[tuple[float, float]] | None = None,
+    trajectories: Sequence["EcefTrajectory"] = (),
+    mode: str = "combined", at_s: float | None = None,
+    center_lon: float = -30.0, center_lat: float = 22.0,
+) -> None:
+    """Write HTML containing local imagery, borders, and a CPU-rendered rotatable globe."""
+    from math import isfinite
+    if mode not in ("imagery", "political", "combined"):
+        raise ValueError("Unrecognized Earth display mode")
+    if not all(isfinite(v) for v in (center_lon, center_lat)) or not -90 <= center_lat <= 90:
+        raise ValueError("Invalid camera coordinates")
+    if at_s is not None and not isfinite(at_s):
+        raise ValueError("at_s must be finite")
+    times = [s.t_s for tr in trajectories for s in tr.samples]
+    if at_s is not None and times and not min(times) <= at_s <= max(times):
+        raise ValueError("at_s outside trajectory time range")
+    config = json.dumps(dict(mode=mode, at_s=at_s, center_lon=center_lon,
+                             center_lat=center_lat), allow_nan=False)
+    page = _HTML.replace("__INITIAL_CONFIG__", config)
+    page = page.replace("__BLUE_MARBLE_BASE64__", base64.b64encode(blue_marble_bytes()).decode("ascii"))
+    page = page.replace("__BORDERS_JSON__", json.dumps([c["rings"] for c in countries()], separators=(",", ":")))
+    page = page.replace("__TRACK_JSON__", json.dumps(list(track or []), separators=(",", ":")))
+    # JSON is embedded in a script tag, so escape its HTML-significant characters.
+    ecef = [{"name": tr.name, "color": tr.color, "samples": [
+        [sm.t_s, sm.position.x_m, sm.position.y_m, sm.position.z_m]
+        for sm in tr.samples]} for tr in trajectories]
+    serialized = json.dumps(ecef, separators=(",", ":"), allow_nan=False)
+    serialized = serialized.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+    page = page.replace("__ECEF_JSON__", serialized)
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).write_text(page, encoding="utf-8")
+
+
+_HTML = r'''<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Trenton | Offline Earth Globe</title>
+<style>
+:root { color-scheme:dark; font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif }
+* {box-sizing:border-box} body {margin:0;background:#071522;color:#e8f2f9}
+main {max-width:1200px;margin:auto;padding:28px 24px}
+h1 {font-size:1.45rem;letter-spacing:.01em;margin:0 0 8px}
+p {color:#a7bbca;font-size:.9rem;line-height:1.5}
+.toolbar {display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 6px}
+button {padding:10px 16px;background:#19344b;border:1px solid #355b73;border-radius:8px;color:#ecf7fe;font-weight:600;cursor:pointer}
+button[aria-pressed=true] {background:#28638b;border-color:#a0d7ff}
+.stage {display:flex;justify-content:center;align-items:center;min-height:400px;background:#091b2d;border:1px solid #233d55;border-radius:16px;overflow:hidden}
+canvas {display:block;max-width:100%;height:auto;touch-action:none;cursor:grab}
+canvas:active {cursor:grabbing}
+.timeline[hidden] {display:none}
+.timeline {display:flex;align-items:center;gap:12px;margin:14px 0;flex-wrap:wrap}
+.timeline input[type=range] {flex:1;min-width:180px;accent-color:#54b1dd}
+.timeline output {min-width:90px;font-variant-numeric:tabular-nums;color:#dbe8f5}
+footer {color:#7895ac;font-size:.77rem;padding:12px 0}
+</style></head><body><main>
+<h1>Offline Earth · Blue Marble + political boundaries</h1>
+<p>Drag to rotate the globe. Switch between imagery, country borders, and both. This page is a <strong>single self-contained HTML file</strong>: no WebGL, tile downloads, CDNs, or external libraries.</p>
+<div class="toolbar" role="group" aria-label="Earth display mode">
+<button id="imagery" aria-pressed="false">Blue Marble</button>
+<button id="political" aria-pressed="false">Political</button>
+<button id="combined" aria-pressed="true">Both</button>
+</div>
+<div class="timeline" id="timeline"><button id="play" aria-label="Play ECEF trajectories">▶ Play</button>
+<label for="time">ECEF time</label><input id="time" type="range" min="0" max="1" step="any" value="0">
+<output id="clock" for="time">0 s</output></div>
+<div class="stage"><canvas id="earth" width="680" height="680" aria-label="Interactive shaded Earth globe"></canvas></div>
+<footer>NASA Earth Observatory Blue Marble Next Generation · Natural Earth country boundaries · Synthetic track (illustrative) · No network access</footer>
+</main><script>
+"use strict";
+const rings = __BORDERS_JSON__;
+const track = __TRACK_JSON__;
+const ecefTrajectories = __ECEF_JSON__;
+const canvas = document.querySelector('#earth');
+const ctx = canvas.getContext('2d',{alpha:false});
+const N=canvas.width, PI=Math.PI, TWO_PI=PI*2, R=N*0.47;
+const initial = __INITIAL_CONFIG__;
+let centerLon=initial.center_lon*PI/180, centerLat=initial.center_lat*PI/180, mode=initial.mode, ready=false;
+for (const id of ['imagery','political','combined']) document.getElementById(id).setAttribute('aria-pressed',String(id===mode));
+let tex=null, mask=null, texW=1800, texH=900, scheduled=false, viewDirty=true;
+const baseCanvas=document.createElement('canvas');baseCanvas.width=N;baseCanvas.height=N;
+const baseCtx=baseCanvas.getContext('2d');
+const timeline=document.getElementById('timeline'), timeInput=document.getElementById('time');
+const timeOut=document.getElementById('clock'), play=document.getElementById('play');
+let timeMin=Infinity,timeMax=-Infinity,hasSamples=false;
+for(const tr of ecefTrajectories)for(const sample of tr.samples){
+  hasSamples=true;timeMin=Math.min(timeMin,sample[0]);timeMax=Math.max(timeMax,sample[0]);
+}
+if(!hasSamples){timeMin=0;timeMax=0;}
+let currentTime=initial.at_s===null ? timeMin+(timeMax-timeMin)*0.60 : initial.at_s, playing=false, animationId=null;
+timeline.hidden=!hasSamples;timeInput.min=String(timeMin);timeInput.max=String(timeMax);
+timeInput.step=String(Math.max(0.01,(timeMax-timeMin)/1000));timeInput.value=String(currentTime);
+timeOut.value=currentTime.toFixed(1)+' s';
+function updateTime(t) {currentTime=Number(t);timeInput.value=String(currentTime);timeOut.value=currentTime.toFixed(1)+' s';schedule();}
+timeInput.addEventListener('input',()=>updateTime(timeInput.value));
+play.addEventListener('click',()=>{
+  playing=!playing;play.textContent=playing?'❚❚ Pause':'▶ Play';
+  if(animationId!==null)clearInterval(animationId);
+  if(playing){if(currentTime>=timeMax)updateTime(timeMin);
+    animationId=setInterval(()=>{const step=(timeMax-timeMin)/125;
+      const next=currentTime+step;if(next>=timeMax){updateTime(timeMax);playing=false;
+      play.textContent='▶ Play';clearInterval(animationId);animationId=null;}else updateTime(next);
+    },75);
+  } else animationId=null;
+});
+
+const buttons=['imagery','political','combined'];
+for (const id of buttons) document.getElementById(id).addEventListener('click',()=>{
+ mode=id; viewDirty=true; for (const b of buttons) document.getElementById(b).setAttribute('aria-pressed',String(b===id)); schedule();
+});
+function basis() {
+ const sl=Math.sin(centerLon),cl=Math.cos(centerLon),sp=Math.sin(centerLat),cp=Math.cos(centerLat);
+ return {f:[cp*cl,cp*sl,sp], e:[-sl,cl,0], n:[-sp*cl,-sp*sl,cp]};
+}
+function drawRings(b) {
+ ctx.strokeStyle=mode==='combined'?'rgba(255,239,184,.88)':'rgba(16,52,75,.95)';
+ ctx.lineWidth=mode==='combined'?0.9:1.0;
+ for (const country of rings) for (const ring of country) {
+   let open=false;
+   for (const pt of ring) {
+     const lon=pt[0]*PI/180,lat=pt[1]*PI/180;
+     const x=Math.cos(lat)*Math.cos(lon),y=Math.cos(lat)*Math.sin(lon),z=Math.sin(lat);
+     const depth=x*b.f[0]+y*b.f[1]+z*b.f[2];
+     if (depth<=0.001) { if(open) {ctx.stroke();open=false;} continue; }
+     const east=x*b.e[0]+y*b.e[1]+z*b.e[2], north=x*b.n[0]+y*b.n[1]+z*b.n[2];
+     const sx=N/2+east*R,sy=N/2-north*R;
+     if(!open) {ctx.beginPath();ctx.moveTo(sx,sy);open=true;} else ctx.lineTo(sx,sy);
+   }
+   if(open) ctx.stroke();
+ }
+}
+function drawTrack(b) {
+ if(track.length<2) return;
+ ctx.strokeStyle='#ffb968';ctx.lineWidth=2.7;ctx.shadowColor='#301100';ctx.shadowBlur=4;
+ let open=false;
+ for(const pt of track) {
+   const lon=pt[0]*PI/180,lat=pt[1]*PI/180;
+   const x=Math.cos(lat)*Math.cos(lon),y=Math.cos(lat)*Math.sin(lon),z=Math.sin(lat);
+   const depth=x*b.f[0]+y*b.f[1]+z*b.f[2];
+   if(depth<=0.001) {if(open){ctx.stroke();open=false;}continue;}
+   const east=x*b.e[0]+y*b.e[1]+z*b.e[2], north=x*b.n[0]+y*b.n[1]+z*b.n[2];
+   const sx=N/2+east*R,sy=N/2-north*R;
+   if(!open){ctx.beginPath();ctx.moveTo(sx,sy);open=true;}else ctx.lineTo(sx,sy);
+ }
+ if(open) ctx.stroke(); ctx.shadowBlur=0;
+}
+function xyzVisible(s,b) {
+ const Rm=6371000, x=s[1]/Rm,y=s[2]/Rm,z=s[3]/Rm;
+ const u=x*b.e[0]+y*b.e[1]+z*b.e[2];
+ const v=x*b.n[0]+y*b.n[1]+z*b.n[2];
+ // WGS84 ray/ellipsoid intersection toward camera. Coordinates in Earth radii.
+ const wa=1/((6378137/Rm)**2), wb=1/((6356752.314245/Rm)**2);
+ const aa=wa*(b.f[0]**2+b.f[1]**2)+wb*b.f[2]**2;
+ const bb=2*(wa*(x*b.f[0]+y*b.f[1])+wb*z*b.f[2]);
+ const cc=wa*(x*x+y*y)+wb*z*z-1;
+ const det=bb*bb-4*aa*cc;
+ let visible=true;
+ if(det>=0){const root=Math.sqrt(det);const lo=(-bb-root)/(2*aa),hi=(-bb+root)/(2*aa);
+   visible=!(hi>1/Rm&&(lo>1/Rm||cc< -1e-12));}
+ return {u,v,visible};
+}
+function ecefAt(samples,t){
+ if(t<samples[0][0]||t>samples[samples.length-1][0])return null;
+ let low=0,high=samples.length-1;
+ while(high-low>1){const mid=(low+high)>>1;if(samples[mid][0]<=t)low=mid;else high=mid;}
+ const a=samples[low],b=samples[high];
+ if(t===a[0]||low===high)return a;
+ const f=Math.min(1,Math.max(0,(t-a[0])/(b[0]-a[0])));
+ return [t,a[1]+f*(b[1]-a[1]),a[2]+f*(b[2]-a[2]),a[3]+f*(b[3]-a[3])];
+}
+function drawEcef(b){
+ for(const tr of ecefTrajectories){
+  ctx.strokeStyle=tr.color;ctx.lineWidth=2.3;ctx.shadowColor='#000';ctx.shadowBlur=2;
+  let open=false;
+  for(const sample of tr.samples){
+   if(sample[0]>currentTime)break;
+   const p=xyzVisible(sample,b);
+   if(!p.visible){if(open){ctx.stroke();open=false;}continue;}
+   const sx=N/2+p.u*R,sy=N/2-p.v*R;
+   if(!open){ctx.beginPath();ctx.moveTo(sx,sy);open=true;}else ctx.lineTo(sx,sy);
+  }
+  if(open)ctx.stroke();ctx.shadowBlur=0;
+  const sample=ecefAt(tr.samples,currentTime);
+  if(sample!==null){const p=xyzVisible(sample,b);if(p.visible){
+    const x=N/2+p.u*R,y=N/2-p.v*R;
+    ctx.beginPath();ctx.arc(x,y,5,0,TWO_PI);ctx.fillStyle=tr.color;ctx.fill();
+    ctx.strokeStyle='white';ctx.lineWidth=1;ctx.stroke();
+    ctx.fillStyle='#fff';ctx.font='bold 12px system-ui';ctx.fillText(tr.name,x+8,y-8);
+  }}
+ }
+}
+function render() {
+ scheduled=false;if(!ready) return;
+ const b=basis();
+ if(viewDirty) {
+ const d=ctx.createImageData(N,N), pixels=d.data;
+ for(let iy=0;iy<N;iy++) for(let ix=0;ix<N;ix++) {
+   const u=(ix-N/2)/R,v=(N/2-iy)/R,rr=u*u+v*v;
+   const pos=(iy*N+ix)*4;
+   if(rr>1) {pixels[pos]=7;pixels[pos+1]=21;pixels[pos+2]=34;pixels[pos+3]=255;continue;}
+   const depth=Math.sqrt(1-rr);
+   const x=b.f[0]*depth+b.e[0]*u+b.n[0]*v;
+   const y=b.f[1]*depth+b.e[1]*u+b.n[1]*v;
+   const z=b.f[2]*depth+b.e[2]*u+b.n[2]*v;
+   const lon=Math.atan2(y,x),lat=Math.asin(Math.max(-1,Math.min(1,z)));
+   const tx=Math.max(0,Math.min(texW-1,Math.floor((lon+PI)/TWO_PI*texW)));
+   const ty=Math.max(0,Math.min(texH-1,Math.floor((PI/2-lat)/PI*texH)));
+   const ti=(ty*texW+tx)*4,brightness=0.67+0.33*Math.max(0,Math.min(1,0.8*depth+0.3*u+0.2*v));
+   if(mode==='political') {
+     const land=mask[ti]>90;
+     pixels[pos]=Math.floor((land?159:18)*brightness);
+     pixels[pos+1]=Math.floor((land?188:69)*brightness);
+     pixels[pos+2]=Math.floor((land?165:109)*brightness);
+   } else {
+     pixels[pos]=Math.floor(tex[ti]*brightness);
+     pixels[pos+1]=Math.floor(tex[ti+1]*brightness);
+     pixels[pos+2]=Math.floor(tex[ti+2]*brightness);
+   }
+   pixels[pos+3]=255;
+ }
+ ctx.putImageData(d,0,0);
+ ctx.beginPath();ctx.arc(N/2,N/2,R,0,TWO_PI);ctx.strokeStyle='rgba(118,191,228,.65)';ctx.lineWidth=1.5;ctx.stroke();
+ if(mode!=='imagery') drawRings(b);
+ baseCtx.clearRect(0,0,N,N);baseCtx.drawImage(canvas,0,0);viewDirty=false;
+ } else { ctx.drawImage(baseCanvas,0,0); }
+ drawTrack(b);
+ drawEcef(b);
+ canvas.dataset.ready='1';canvas.dataset.mode=mode;
+}
+function schedule(){if(!scheduled){scheduled=true;requestAnimationFrame(render);}}
+let drag=false,px=0,py=0;
+canvas.addEventListener('pointerdown',e=>{drag=true;px=e.clientX;py=e.clientY;canvas.setPointerCapture(e.pointerId)});
+canvas.addEventListener('pointerup',()=>drag=false);
+canvas.addEventListener('pointercancel',()=>drag=false);
+canvas.addEventListener('pointermove',e=>{
+ if(!drag)return;
+ centerLon-=(e.clientX-px)*.006;
+ centerLat=Math.max(-PI*.46,Math.min(PI*.46,centerLat+(e.clientY-py)*.006));
+ px=e.clientX;py=e.clientY;viewDirty=true;schedule();
+});
+// Source photo is embedded in the HTML data URL; no external image request.
+const photo=new Image();
+photo.onload=()=>{
+ const off=document.createElement('canvas');off.width=texW;off.height=texH;
+ const o=off.getContext('2d',{willReadFrequently:true});o.drawImage(photo,0,0,texW,texH);
+ tex=o.getImageData(0,0,texW,texH).data;
+ o.clearRect(0,0,texW,texH);o.fillStyle='white';
+ for(const country of rings)for(const ring of country) {
+   if(ring.length<3)continue;o.beginPath();
+   ring.forEach((p,i)=>{const x=(p[0]+180)/360*texW,y=(90-p[1])/180*texH;
+     if(i===0)o.moveTo(x,y);else o.lineTo(x,y);});
+   o.closePath();o.fill();
+ }
+ mask=o.getImageData(0,0,texW,texH).data;
+ ready=true;schedule();
+};
+photo.src='data:image/jpeg;base64,__BLUE_MARBLE_BASE64__';
+</script></body></html>'''

@@ -1,0 +1,60 @@
+{
+  "project": "Trenton Offline Earth v0.3.0",
+  "wheel": {
+    "file": "trenton_offline_maps-0.3.0-py3-none-any.whl",
+    "sha256": "f148ce4584a3f5d79185a3a5204a3bf747b15f518757f0e790ddef4e071fa026",
+    "bytes": 2387666,
+    "wheel_internal_zip_test": "passed",
+    "installed_in_new_clean_venv": "passed: pip --no-index --only-binary=:all: --no-deps",
+    "stdlib_only_svg_and_canvas_generated_from_wheel_with_socket_dns_blocked": true
+  },
+  "requirements": {
+    "no_runtime_network": true,
+    "wheel_only_installation": true,
+    "third_party_core_runtime_dependencies": [],
+    "download_at_runtime": false,
+    "all_assets_inside_wheel": [
+      "blue_marble.jpg",
+      "countries.json",
+      "PROVENANCE.txt"
+    ]
+  },
+  "tests": {
+    "passed": 26,
+    "socket_and_dns_blocked_for_actual_static_and_html_renders": true,
+    "wgs84_roundtrip_and_ECEF_epoch_interpolation": true,
+    "SVG_blue_marble_embedded": true,
+    "browser": {
+      "browser": "Chromium (headless)",
+      "browser_rendered": true,
+      "view_buttons_tested": [
+        "political",
+        "imagery",
+        "combined"
+      ],
+      "time_scrubber_tested": "3600.0 s",
+      "playback_advanced_s": 3744.0,
+      "drag_tested": true,
+      "network_attempts": [],
+      "script_errors": [],
+      "scope": "Canvas only; Plotly WebGL not browser certified",
+      "load_mechanism": "page.set_content (local file navigation restricted)"
+    }
+  },
+  "renderers": {
+    "svg": "offline core wheel, flat map with inline Blue Marble and borders",
+    "canvas": "offline core wheel; interactive time playback and 3 Earth modes, browser verified",
+    "matplotlib_2d": "offline runtime verified with installed Python wheels",
+    "matplotlib_globe": "offline runtime verified with installed Python wheels",
+    "matplotlib_timeseries": "offline runtime verified with installed Python wheels",
+    "plotly_globe": "offline generated with embedded Plotly JS; browser WebGL not certified"
+  },
+  "platform_certified": "Linux x86_64, Python 3.13 only for execution on this host",
+  "platform_gaps": "Wheel-only availability for optional dependencies and browser rendering on other platforms not certified",
+  "data_caveats": [
+    "synthetic demonstration is not orbital propagation",
+    "simplified Natural Earth borders (177 countries)",
+    "No state/province or county boundaries",
+    "No input ECI->ECEF conversion or time scale transformation"
+  ]
+}

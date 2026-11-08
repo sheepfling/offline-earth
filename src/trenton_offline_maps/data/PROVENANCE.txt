@@ -1,0 +1,22 @@
+GEOSPATIAL DATA PROVENANCE — v0.2.0
+
+blue_marble.jpg
+- Image: NASA Blue Marble Next Generation (global Earth appearance).
+- Distributed copy: bmng.jpg in the pre-installed basemap-data 2.0.0 wheel.
+- NASA credit requested: "NASA Earth Observatory" (Reto Stöckli / Robert Simmon).
+- Reference: https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/
+- NASA Media Guidelines: https://www.nasa.gov/nasa-brand-center/images-and-media/
+- Original pixel size: 5400x2700. File is a single compressed JPEG image.
+- The basemap-data wheel is distributed under LGPL-3.0-or-later; its license
+  texts are included in the showcase's licenses directory. NASA imagery is
+  generally not subject to US copyright, but NASA endorsement is not implied.
+
+countries.json
+- Simplified Natural Earth low-resolution country outlines via the GeoPandas
+  demonstration dataset; vector geometry repackaged as compact JSON.
+- Natural Earth public domain: https://www.naturalearthdata.com/about/terms-of-use/
+- Country boundaries are NOT authoritative legal border determinations.
+- This dataset is simplified and not adequate for cadastral, legal, or
+  high-resolution admin-1/admin-2 needs.
+
+NO DOWNLOADS: both data resources are directly embedded within the wheel.

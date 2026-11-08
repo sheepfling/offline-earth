@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "trenton-offline-maps"
+version = "0.3.1"
+description = "Offline Blue Marble and political Earth maps with timestamped ECEF trajectories"
+requires-python = ">=3.10"
+dependencies = []
+[project.optional-dependencies]
+plot = ["numpy>=1.26", "matplotlib>=3.7", "pillow>=10"]
+interactive = ["numpy>=1.26", "plotly>=5", "pillow>=10"]
+test = ["pytest>=7"]
+[project.scripts]
+trenton-maps = "trenton_offline_maps.cli:main"
+[tool.setuptools]
+license-files = ["licenses/*.txt", "licenses/README.md"]
+
+[tool.setuptools.package-data]
+trenton_offline_maps = ["data/*.json", "data/*.jpg", "data/*.txt"]
+[tool.setuptools.packages.find]
+where = ["src"]

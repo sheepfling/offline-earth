@@ -1,0 +1,30 @@
+{
+  "frame": "ECEF",
+  "units": "metres",
+  "time_units": "seconds",
+  "trajectories": [
+    {
+      "name": "GEO / -75\u00b0",
+      "color": "#b7a6fa",
+      "epoch_utc": null,
+      "samples": [
+        {
+          "time_s": 0.0,
+          "ecef_m": [
+            10912881.675911864,
+            -40727428.87149048,
+            0.0
+          ]
+        },
+        {
+          "time_s": 6000.0,
+          "ecef_m": [
+            10912881.675911864,
+            -40727428.87149048,
+            0.0
+          ]
+        }
+      ]
+    }
+  ]
+}
