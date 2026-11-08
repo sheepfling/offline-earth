@@ -10,15 +10,15 @@ from trenton_offline_maps.visualize import RenderSpec, render_ecef
 def test_canvas_respects_initial_settings(tmp_path, mode):
     tr = EcefTrajectory.from_arrays('demo', [0, 10], [[7e6,0,0],[0,7e6,0]])
     p = render_ecef([tr], tmp_path/'test.html', spec=RenderSpec(
-        backend='canvas', mode=mode, at_s=3, center_lon=40, center_lat=50))
+        backend='canvas', mode=mode, at_s=3, center_lon_deg=40, center_lat_deg=50))
     html = p.read_text()
     config = json.loads(html.split('const initial = ')[1].split(';')[0])
-    assert config == dict(mode=mode,at_s=3,center_lon=40,center_lat=50)
+    assert config == dict(mode=mode,at_s=3,center_lon_deg=40,center_lat_deg=50)
     assert "connect-src 'none'" in html
     assert '__INITIAL_CONFIG__' not in html
 
 @pytest.mark.parametrize('kwargs', [{'mode':'bad'},{'at_s':float('nan')},
-    {'center_lat':91},{'center_lon':float('inf')},{'at_s':11}])
+    {'center_lat_deg':91},{'center_lon_deg':float('inf')},{'at_s':11}])
 def test_canvas_rejects_invalid_settings(tmp_path, kwargs):
     tr = EcefTrajectory.from_arrays('demo', [0,10], [[7e6,0,0],[0,7e6,0]])
     with pytest.raises(ValueError):
@@ -47,3 +47,10 @@ def test_canvas_escapes_all_caller_track_json(tmp_path):
 def test_script_json_rejects_nonfinite_numbers(bad):
     with pytest.raises(ValueError):
         _script_json({'coordinate': bad})
+
+
+def test_canvas_template_replacement_does_not_reinterpret_data(tmp_path):
+    tr = EcefTrajectory.from_arrays('__TRACK_JSON__', [0], [(7e6, 0, 0)])
+    path = tmp_path / 'tokens.html'
+    canvas_globe(path, trajectories=[tr])
+    assert '"name":"__TRACK_JSON__"' in path.read_text()

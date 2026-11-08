@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import isfinite
+from importlib import import_module
 from pathlib import Path
 from .paths import PathInput, output_path
 from .geometry import Degrees, ViewMode
@@ -11,8 +12,6 @@ from typing import Literal, Sequence
 
 from .svg import save_svg
 from .canvas import canvas_globe
-from .earth import matplotlib_globe, matplotlib_world, plotly_globe
-from .timeseries import matplotlib_ecef_timeseries
 from .trajectory import EcefTrajectory
 
 Backend = Literal["svg", "map", "globe", "canvas", "plotly", "timeseries"]
@@ -20,17 +19,16 @@ Backend = Literal["svg", "map", "globe", "canvas", "plotly", "timeseries"]
 
 @dataclass(frozen=True, slots=True)
 class RenderSpec:
-    """Display choices. center_lon/center_lat are degrees, never radians.
+    """Display choices. center_lon_deg/center_lat_deg are degrees, never radians.
 
-    Camera names remain compatible; annotations expose their angular units.
     No ECI conversion or orbit propagation is implied.
     """
 
     backend: Backend = "map"
     mode: ViewMode = "combined"
     at_s: float | None = None
-    center_lon: Degrees = DEFAULT_CENTER_LON_DEG
-    center_lat: Degrees = DEFAULT_CENTER_LAT_DEG
+    center_lon_deg: Degrees = DEFAULT_CENTER_LON_DEG
+    center_lat_deg: Degrees = DEFAULT_CENTER_LAT_DEG
     extent_earth_radii: float = DEFAULT_EXTENT_EARTH_RADII
 
     def __post_init__(self) -> None:
@@ -40,9 +38,9 @@ class RenderSpec:
             raise ValueError("Unrecognized Earth display mode")
         if self.at_s is not None and not isfinite(self.at_s):
             raise ValueError("at_s must be finite")
-        if not all(isfinite(v) for v in (self.center_lon, self.center_lat, self.extent_earth_radii)):
+        if not all(isfinite(v) for v in (self.center_lon_deg, self.center_lat_deg, self.extent_earth_radii)):
             raise ValueError("Camera parameters must be finite")
-        if not -90 <= self.center_lat <= 90:
+        if not -90 <= self.center_lat_deg <= 90:
             raise ValueError("Camera latitude must lie in [-90,90]")
         if self.extent_earth_radii < 1.05:
             raise ValueError("extent_earth_radii must be >= 1.05")
@@ -67,23 +65,31 @@ def render_ecef(
     if len(epochs) > 1:
         raise ValueError("All trajectories must share the same epoch_utc (or all omit it)")
     path = output_path(output)
+    # The sole optional-dependency boundary: importing core presentation APIs is
+    # dependency-free; selecting a backend imports only its explicit module.
+    optional_modules = {
+        "map": ".renderers.matplotlib", "globe": ".renderers.matplotlib",
+        "plotly": ".renderers.plotly", "timeseries": ".timeseries",
+    }
+    renderer = (import_module(optional_modules[spec.backend], __package__)
+                if spec.backend in optional_modules else None)
     if spec.backend == "svg":
         save_svg(str(path), trajectories=list(trajectories), at_s=spec.at_s,
                  mode=spec.mode)
     elif spec.backend == "map":
-        matplotlib_world(path, mode=spec.mode, trajectories=trajectories,
+        renderer.matplotlib_world(path, mode=spec.mode, trajectories=trajectories,
                          at_s=spec.at_s)
     elif spec.backend == "globe":
-        matplotlib_globe(path, mode=spec.mode, trajectories=trajectories,
-                         at_s=spec.at_s, center_lon=spec.center_lon,
-                         center_lat=spec.center_lat,
+        renderer.matplotlib_globe(path, mode=spec.mode, trajectories=trajectories,
+                         at_s=spec.at_s, center_lon_deg=spec.center_lon_deg,
+                         center_lat_deg=spec.center_lat_deg,
                          extent_earth_radii=spec.extent_earth_radii)
     elif spec.backend == "canvas":
         canvas_globe(path, trajectories=trajectories, mode=spec.mode, at_s=spec.at_s,
-                     center_lon=spec.center_lon, center_lat=spec.center_lat)
+                     center_lon_deg=spec.center_lon_deg, center_lat_deg=spec.center_lat_deg)
     elif spec.backend == "plotly":
-        plotly_globe(path, include_imagery=(spec.mode != "political"),
+        renderer.plotly_globe(path, include_imagery=(spec.mode != "political"),
                      trajectories=trajectories, at_s=spec.at_s)
     else:
-        matplotlib_ecef_timeseries(path, trajectories)
+        renderer.matplotlib_ecef_timeseries(path, trajectories)
     return path

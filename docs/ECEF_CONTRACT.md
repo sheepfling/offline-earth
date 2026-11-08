@@ -88,7 +88,6 @@ The Matplotlib and Canvas Earth image projection is intentionally spherical for 
 - Only Python wheels may be installed; the optional display packages must already exist in an **offline platform-specific wheelhouse** when installing air-gapped.
 - Core wheel can install with `pip install --no-index --only-binary=:all: --no-deps path/to/trenton_offline_maps-0.3.1-py3-none-any.whl`.
 - Tests block socket and DNS operations while actually rendering. A separate browser test intercepts and aborts every external request and checks Canvas mode, time scrubber, Play/Pause and dragging.
-- See [current validation](VALIDATION.md) for tested environment and checks.
 
 ## Known gaps
 
@@ -108,9 +107,9 @@ This applies to wrapped trajectory collections and single-trajectory JSON.
 
 All public file inputs/outputs accept `PathInput` (`str | os.PathLike[str]`).
 Shared I/O helpers normalize to `pathlib.Path`; writers create parent directories.
-`center_lon` and `center_lat` always mean **degrees**, not radians, in Python and
-CLI APIs. Their `Degrees` annotations carry that unit while keeping existing
-keyword names compatible. Internal trigonometry converts degrees to radians.
+`center_lon_deg` and `center_lat_deg` always mean **degrees**, not radians, in Python and
+CLI APIs (`--center-lon-deg`, `--center-lat-deg`). Their `Degrees` annotations carry
+that unit. Internal trigonometry uses explicitly named `_rad` variables.
 
 Ground-track points are `LonLatDegrees(lon_deg, lat_deg)`; time ranges expose
 `start_s`/`end_s`, and projected points expose Earth-radius coordinates and visibility.

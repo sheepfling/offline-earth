@@ -6,7 +6,8 @@ from datetime import datetime, timezone
 from trenton_offline_maps.visualize import RenderSpec, render_ecef
 from trenton_offline_maps import save_svg, svg_map
 from trenton_offline_maps.canvas import canvas_globe
-from trenton_offline_maps.earth import matplotlib_globe, matplotlib_world, plotly_globe
+from trenton_offline_maps.renderers.matplotlib import matplotlib_globe, matplotlib_world
+from trenton_offline_maps.renderers.plotly import plotly_globe
 from trenton_offline_maps.timeseries import matplotlib_ecef_timeseries
 from test_rendering_offline import _Assets
 

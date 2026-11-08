@@ -40,7 +40,7 @@ track = EcefTrajectory.from_arrays(
     [[7_000_000, 0, 0], [6_990_000, 300_000, 100_000], [6_970_000, 600_000, 200_000]],
 )
 render_ecef([track], "earth.html", spec=RenderSpec(
-    backend="canvas", mode="combined", at_s=10, center_lon=0, center_lat=20))
+    backend="canvas", mode="combined", at_s=10, center_lon_deg=0, center_lat_deg=20))
 ```
 
 ECEF is Earth-fixed, right-handed: +X at 0° longitude/equator, +Y at 90°E/equator,
@@ -68,6 +68,16 @@ platform does not certify another. No complete platform-specific wheelhouse is s
 For a reproducible deployment, retain wheel filenames and SHA-256 hashes and pin the chosen
 versions. Browser binaries are separately installed desktop software, not Python assets.
 
+Optional APIs live in explicit modules: `renderers.matplotlib`, `renderers.plotly`,
+`renderers.raster`, and `timeseries`. Importing one loads its declared dependencies;
+core `visualize` dispatches only the selected backend. Demo generators belong to
+`examples.utilities`, not the production package.
+
+Canvas data loading is separate from presentation: `load_canvas_scene` in
+`canvas_scene` returns local scene data; `render_canvas_html` in `canvas` consumes it.
+The default presentation is the inspectable wheel resource `templates/canvas.html`.
+A caller may supply an alternate template without reloading assets.
+
 ## Build and test
 
 Install normal development extras while online (includes build, test, example and
@@ -80,8 +90,8 @@ python -m pytest -q
 
 For examples alone, use `pip install --only-binary=:all: -e '.[examples]'`.
 The editable project is local source; all third-party dependencies must be wheels.
-Generate galleries with `python examples/showcase_offline.py` or
-`python examples/showcase_ecef.py`; outputs go under ignored `artifacts/`.
+Generate galleries with `python -m examples.showcase_offline` or
+`python -m examples.showcase_ecef`; outputs go under ignored `artifacts/`.
 Sample CSV/JSON inputs live in `examples/data/`. Neither importing examples nor
 importing browser-audit helpers creates files or launches a browser.
 
@@ -99,7 +109,7 @@ The `[dev]` extra covers the full test suite. The installed-wheel
 smoke script needs only stdlib and blocks Python socket/DNS calls while rendering all three
 modes with both core renderers. After generating the ECEF gallery, `python tools/verify_ecef_browser.py`
 uses Playwright from `[dev]` plus a preinstalled Chromium; it intercepts external
-page requests. The browser binary is not downloaded automatically. See [current validation](docs/VALIDATION.md).
+page requests. The browser binary is not downloaded automatically.
 
 ## Assets, inspection, licenses
 
@@ -109,12 +119,12 @@ page requests. The browser binary is not downloaded automatically. See [current 
 - `data/ASSETS.json`: names, sizes, hashes and source/license notes.
 - `data/PROVENANCE.txt`: inherited provenance. Exact upstream country-data version is not
   recorded in the input archive; do not claim independently verified provenance beyond it.
-- `licenses/`: upstream basemap-data GPL/LGPL notices, also included in the wheel.
+- `licenses/`: the applicable upstream basemap-data MIT notice, also included in the wheel.
 
 Inspect wheels with any ZIP reader. No opaque asset-fetching library is required.
 NASA imagery attribution: NASA Earth Observatory (Reto Stöckli / Robert Simmon).
-Natural Earth is public domain. Upstream basemap-data distribution is LGPL-3.0-or-later;
-asset notices are not a blanket license for this project's code. **No project-wide code
+Natural Earth is public domain. basemap-data 2.0.0 assigns its JPEG images the MIT license;
+its GSHHG LGPL/GPL notices do not apply to the resources bundled here. Asset notices are not a blanket license for this project's code. **No project-wide code
 license has been chosen yet.** Review provenance/licensing before public distribution.
 
 ## Limitations

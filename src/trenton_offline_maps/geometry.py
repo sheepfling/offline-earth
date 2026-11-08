@@ -39,18 +39,18 @@ class OrthographicPoint(NamedTuple):
     visible: bool
 
 
-def camera_basis(center_lon: Degrees, center_lat: Degrees) -> CameraBasis:
+def camera_basis(center_lon_deg: Degrees, center_lat_deg: Degrees) -> CameraBasis:
     """Unit camera vectors from longitude/latitude in degrees, never radians."""
-    lon, lat = radians(center_lon), radians(center_lat)
-    return CameraBasis(Vector3(cos(lat)*cos(lon), cos(lat)*sin(lon), sin(lat)),
-                       Vector3(-sin(lon), cos(lon), 0.0),
-                       Vector3(-sin(lat)*cos(lon), -sin(lat)*sin(lon), cos(lat)))
+    lon_rad, lat_rad = radians(center_lon_deg), radians(center_lat_deg)
+    return CameraBasis(Vector3(cos(lat_rad)*cos(lon_rad), cos(lat_rad)*sin(lon_rad), sin(lat_rad)),
+                       Vector3(-sin(lon_rad), cos(lon_rad), 0.0),
+                       Vector3(-sin(lat_rad)*cos(lon_rad), -sin(lat_rad)*sin(lon_rad), cos(lat_rad)))
 
 
-def camera_to_world(east, north, depth, basis: CameraBasis):
-    """Convert camera coordinates to world XYZ; works on scalars or array operands."""
-    return tuple(f*depth + e*east + n*north
-                 for f, e, n in zip(basis.forward, basis.east, basis.north))
+def camera_to_world(east: float, north: float, depth: float, basis: CameraBasis) -> Vector3:
+    """Convert scalar camera coordinates to a named world XYZ vector."""
+    return Vector3(*(f*depth + e*east + n*north
+                 for f, e, n in zip(basis.forward, basis.east, basis.north)))
 
 
 def split_antimeridian(track: GroundTrack) -> list[list[LonLatDegrees]]:

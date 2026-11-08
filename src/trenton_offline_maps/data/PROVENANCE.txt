@@ -1,15 +1,24 @@
-GEOSPATIAL DATA PROVENANCE — v0.2.0
+GEOSPATIAL DATA PROVENANCE
 
 blue_marble.jpg
 - Image: NASA Blue Marble Next Generation (global Earth appearance).
-- Distributed copy: bmng.jpg in the pre-installed basemap-data 2.0.0 wheel.
+- Verified byte-for-byte against mpl_toolkits/basemap_data/bmng.jpg in the
+  official basemap_data-2.0.0-py3-none-any.whl. Also identical to the supplied
+  v0.3.0 archive image. JPEG SHA-256 is recorded in ASSETS.json.
+- Official wheel SHA-256:
+  56103a0dfa411c77bec1888b232bb70e7ceb089f83679531fbb4bb6efafa5035
+- BASEMAP_DATA_MIT.txt is byte-identical to the wheel's LICENSE.mit.
 - NASA credit requested: "NASA Earth Observatory" (Reto Stöckli / Robert Simmon).
 - Reference: https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/
 - NASA Media Guidelines: https://www.nasa.gov/nasa-brand-center/images-and-media/
 - Original pixel size: 5400x2700. File is a single compressed JPEG image.
-- The basemap-data wheel is distributed under LGPL-3.0-or-later; its license
-  texts are included in the showcase's licenses directory. NASA imagery is
-  generally not subject to US copyright, but NASA endorsement is not implied.
+- basemap-data 2.0.0 explicitly licenses JPEGs under MIT; its LGPL license
+  applies to GSHHG-derived masks and boundary datasets, which are not bundled
+  here. The applicable notice is licenses/BASEMAP_DATA_MIT.txt.
+- License scope: https://pypi.org/project/basemap-data/2.0.0/#description
+- Notice: https://github.com/matplotlib/basemap/blob/v2.0.0/data/basemap_data/LICENSE.mit
+- NASA imagery is generally not subject to US copyright; NASA endorsement
+  is not implied. Credit and media guidelines above remain applicable.
 
 countries.json
 - Simplified Natural Earth low-resolution country outlines via the GeoPandas

@@ -4,7 +4,19 @@
       "sha256": "10f5389b365d7ece89f68a73ce5653fb5692145fde181fc64596d0d87cb89bb8",
       "size_bytes": 2311548,
       "source": "basemap-data 2.0.0 bmng.jpg; NASA Blue Marble Next Generation",
-      "license_notes": "NASA imagery; basemap-data distribution LGPL-3.0-or-later"
+      "license_notes": "NASA imagery; distributed JPEG covered by basemap-data MIT notice (licenses/BASEMAP_DATA_MIT.txt), not its GSHHG LGPL data license",
+      "width_px": 5400,
+      "height_px": 2700,
+      "extent_deg": [
+        -180,
+        180,
+        -90,
+        90
+      ],
+      "origin": "upper",
+      "license_source": "https://pypi.org/project/basemap-data/2.0.0/#description",
+      "source_wheel_sha256": "56103a0dfa411c77bec1888b232bb70e7ceb089f83679531fbb4bb6efafa5035",
+      "source_wheel_member": "mpl_toolkits/basemap_data/bmng.jpg"
     },
     "countries.json": {
       "sha256": "b08d5ff4d829782d69faf0367438732a7013bf41503453a0aa3d83ca639b92a0",

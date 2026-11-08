@@ -76,11 +76,11 @@ class GeodeticPosition:
 def geodetic_to_ecef(lon_deg: float, lat_deg: float, height_m: float = 0.0) -> EcefPosition:
     """WGS84 longitude/latitude/ellipsoidal-height to ECEF (metres)."""
     p = GeodeticPosition(lon_deg, lat_deg, height_m)
-    lon, lat = radians(p.lon_deg), radians(p.lat_deg)
-    sl, cl = sin(lat), cos(lat)
+    lon_rad, lat_rad = radians(p.lon_deg), radians(p.lat_deg)
+    sl, cl = sin(lat_rad), cos(lat_rad)
     n = WGS84_A_M / sqrt(1 - WGS84_E2 * sl * sl)
-    return EcefPosition((n + height_m) * cl * cos(lon),
-                        (n + height_m) * cl * sin(lon),
+    return EcefPosition((n + height_m) * cl * cos(lon_rad),
+                        (n + height_m) * cl * sin(lon_rad),
                         (n * (1 - WGS84_E2) + height_m) * sl)
 
 
@@ -92,21 +92,21 @@ def ecef_to_geodetic(position: EcefPosition) -> GeodeticPosition:
         if abs(z) < 1e-8:
             raise ValueError("Geodetic position undefined at Earth centre")
         return GeodeticPosition(0.0, 90.0 if z > 0 else -90.0, abs(z) - WGS84_B_M)
-    lon = degrees(atan2(y, x))
+    lon_deg = degrees(atan2(y, x))
     # Iteratively solve latitude; heights can be thousands of kilometres.
-    lat = atan2(z, p * (1 - WGS84_E2))
+    lat_rad = atan2(z, p * (1 - WGS84_E2))
     for _ in range(16):
-        sl = sin(lat)
+        sl = sin(lat_rad)
         n = WGS84_A_M / sqrt(1 - WGS84_E2 * sl * sl)
-        next_lat = atan2(z + WGS84_E2 * n * sl, p)
-        if abs(next_lat - lat) < 1e-15:
-            lat = next_lat
+        next_lat_rad = atan2(z + WGS84_E2 * n * sl, p)
+        if abs(next_lat_rad - lat_rad) < 1e-15:
+            lat_rad = next_lat_rad
             break
-        lat = next_lat
-    sl, cl = sin(lat), cos(lat)
+        lat_rad = next_lat_rad
+    sl, cl = sin(lat_rad), cos(lat_rad)
     n = WGS84_A_M / sqrt(1 - WGS84_E2 * sl * sl)
     h = p / cl - n if abs(cl) > 1e-8 else abs(z) / abs(sl) - n * (1 - WGS84_E2)
-    return GeodeticPosition(lon, degrees(lat), h)
+    return GeodeticPosition(lon_deg, degrees(lat_rad), h)
 
 
 @dataclass(frozen=True, slots=True)
@@ -247,16 +247,16 @@ def write_trajectories(path: PathInput, tracks: Iterable[EcefTrajectory]) -> Non
 
 
 def project_orthographic_ecef(
-    position: EcefPosition, center_lon: Degrees, center_lat: Degrees,
+    position: EcefPosition, center_lon_deg: Degrees, center_lat_deg: Degrees,
     *, display_radius_m: float = EARTH_RADIUS_M,
 ) -> OrthographicPoint:
     """Orthographic globe coordinates (Earth radii) and WGS84 horizon visibility.
 
-    center_lon and center_lat are degrees. The camera is at infinity along that direction.
+    center_lon_deg and center_lat_deg are degrees. The camera is at infinity along that direction.
     Visibility uses an ellipsoid ray intersection, preserving altitude: a far-side
     satellite may be visible beyond the limb while a surface point is occluded.
     """
-    forward, east, north = camera_basis(center_lon, center_lat)
+    forward, east, north = camera_basis(center_lon_deg, center_lat_deg)
     p = (position.x_m, position.y_m, position.z_m)
     u = sum(a*b for a, b in zip(p, east)) / display_radius_m
     v = sum(a*b for a, b in zip(p, north)) / display_radius_m

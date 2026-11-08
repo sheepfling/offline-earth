@@ -10,13 +10,10 @@ from pathlib import Path
 
 import pytest
 
-from trenton_offline_maps.earth import (
-    blue_marble_bytes,
-    matplotlib_globe,
-    matplotlib_world,
-    orthographic_rgb,
-    plotly_globe,
-)
+from trenton_offline_maps.assets import blue_marble_bytes
+from trenton_offline_maps.renderers.matplotlib import matplotlib_globe, matplotlib_world
+from trenton_offline_maps.renderers.raster import orthographic_rgb
+from trenton_offline_maps.renderers.plotly import plotly_globe
 
 
 class _Assets(HTMLParser):

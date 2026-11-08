@@ -1,5 +1,7 @@
 from math import isclose
-from trenton_offline_maps.earth import EARTH_RADIUS_KM, sphere_xyz, demo_ground_track
+from trenton_offline_maps.earth import sphere_xyz
+from trenton_offline_maps.constants import EARTH_RADIUS_KM
+from examples.utilities import demo_ground_track
 
 def test_equator():
     x, y, z = sphere_xyz(0, 0)

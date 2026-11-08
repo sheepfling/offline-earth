@@ -1,7 +1,8 @@
 """Public units/path contracts and renderer-independent domain utilities."""
 
 from trenton_offline_maps.timeseries import matplotlib_ecef_timeseries
-from trenton_offline_maps import earth
+from trenton_offline_maps.renderers.matplotlib import matplotlib_world, matplotlib_globe
+from trenton_offline_maps.renderers.plotly import plotly_globe
 import importlib
 import json
 import subprocess
@@ -46,8 +47,8 @@ def test_all_public_renderers_accept_pathlike_and_create_parent(tmp_path, backen
     elif backend == 'timeseries':
         matplotlib_ecef_timeseries(UserPath(target), [tr])
     else:
-        function = {'map':earth.matplotlib_world, 'globe':earth.matplotlib_globe,
-                    'plotly':earth.plotly_globe}[backend]
+        function = {'map':matplotlib_world, 'globe':matplotlib_globe,
+                    'plotly':plotly_globe}[backend]
         function(UserPath(target), trajectories=[tr])
     assert target.stat().st_size > 0
 
@@ -89,7 +90,7 @@ def test_shared_camera_math_uses_degrees():
     assert projected.east_earth_radii == pytest.approx(0,abs=1e-10)
     assert projected.visible
     hints = get_type_hints(RenderSpec,include_extras=True)
-    assert hints['center_lon'] == Degrees and hints['center_lat'] == Degrees
+    assert hints['center_lon_deg'] == Degrees and hints['center_lat_deg'] == Degrees
 
 
 def test_canvas_physical_constants_are_serialized_from_shared_source(tmp_path):
@@ -98,3 +99,43 @@ def test_canvas_physical_constants_are_serialized_from_shared_source(tmp_path):
     data=json.loads(p.read_text().split('const earthConstants = ')[1].split(';')[0])
     assert data['radius_m'] == EARTH_RADIUS_M
     assert data['a_m'] == WGS84_A_M and data['b_m'] == WGS84_B_M
+
+
+def test_canvas_scene_can_use_an_alternate_presentation(tmp_path, monkeypatch):
+    from trenton_offline_maps.canvas_scene import load_canvas_scene
+    from trenton_offline_maps.canvas import render_canvas_html
+    scene = load_canvas_scene(center_lon_deg=12, center_lat_deg=-20)
+    def forbidden(*args, **kwargs):
+        raise AssertionError('Presentation must not reload assets')
+    monkeypatch.setattr('trenton_offline_maps.canvas.files', forbidden)
+    html = render_canvas_html(scene, template='<script>const config=__INITIAL_CONFIG__;</script>')
+    assert json.loads(html.split('=', 1)[1].split(';', 1)[0])['center_lon_deg'] == 12
+
+
+def test_camera_vector_return_contract():
+    from trenton_offline_maps.geometry import Vector3
+    assert get_type_hints(camera_to_world)['return'] is Vector3
+    assert isinstance(camera_to_world(0, 0, 1, camera_basis(0, 0)), Vector3)
+
+
+def test_blue_marble_metadata_and_country_ring_semantics():
+    from trenton_offline_maps.assets import BLUE_MARBLE, countries
+    assert (BLUE_MARBLE.width_px, BLUE_MARBLE.height_px) == (5400, 2700)
+    assert (BLUE_MARBLE.preview_width_px, BLUE_MARBLE.preview_height_px) == (1800, 900)
+    assert BLUE_MARBLE.extent_deg == (-180, 180, -90, 90)
+    assert all(ring[0] == ring[-1] for country in countries() for ring in country['rings'])
+
+
+def test_optional_renderer_imports_are_isolated():
+    code = """
+import sys
+from importlib.abc import MetaPathFinder
+class BlockMatplotlib(MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname.split('.')[0] == 'matplotlib':
+            raise AssertionError('Plotly backend must not import Matplotlib')
+sys.meta_path.insert(0, BlockMatplotlib())
+import trenton_offline_maps.renderers.plotly
+assert 'matplotlib' not in sys.modules
+"""
+    subprocess.run([sys.executable, '-c', code], check=True)

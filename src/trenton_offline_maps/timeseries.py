@@ -6,15 +6,16 @@ from .constants import METRES_PER_KM
 from typing import Sequence
 from .trajectory import EcefTrajectory
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
 
 def matplotlib_ecef_timeseries(
     path: PathInput, trajectories: Sequence[EcefTrajectory], *,
     unit: str = "km", title: str = "ECEF position vs time",
 ) -> None:
     """Plot x(t), y(t), z(t) without transforming or propagating inputs."""
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
     if not trajectories:
         raise ValueError("At least one trajectory required")
     factor = {"m": 1.0, "km": METRES_PER_KM}.get(unit)

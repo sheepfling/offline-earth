@@ -1,12 +1,12 @@
 """Build an offline, reviewer-friendly Earth visualization gallery."""
 from pathlib import Path
+from examples.utilities import demo_ground_track
 
 from trenton_offline_maps.canvas import canvas_globe
 
 from trenton_offline_maps import save_svg
-from trenton_offline_maps.earth import (
-    demo_ground_track, matplotlib_globe, matplotlib_world, plotly_globe,
-)
+from trenton_offline_maps.renderers.matplotlib import matplotlib_globe, matplotlib_world
+from trenton_offline_maps.renderers.plotly import plotly_globe
 
 def output_directory() -> Path:
     return Path(__file__).resolve().parents[1] / "artifacts" / "earth"

@@ -7,42 +7,18 @@ rotation; do not use them for orbit determination or operations.
 from __future__ import annotations
 
 import csv
-from math import cos, pi, radians, sin
+from examples.utilities import synthetic_orbit, stationary_ground
 from pathlib import Path
 
 from trenton_offline_maps import save_svg
 from trenton_offline_maps.canvas import canvas_globe
-from trenton_offline_maps.earth import matplotlib_globe, matplotlib_world, plotly_globe
+from trenton_offline_maps.renderers.matplotlib import matplotlib_globe, matplotlib_world
+from trenton_offline_maps.renderers.plotly import plotly_globe
 from trenton_offline_maps.timeseries import matplotlib_ecef_timeseries
 from trenton_offline_maps.trajectory import EcefTrajectory, geodetic_to_ecef, write_trajectories
 
 def output_directory() -> Path:
     return Path(__file__).resolve().parents[1] / "artifacts" / "ecef"
-
-
-def synthetic_orbit(name: str, *, inclination_deg: float, period_s: float,
-                    height_m: float, phase_deg: float, color: str) -> EcefTrajectory:
-    earth_spin_rad_s = 7.292115e-5
-    radius = 6371000 + height_m
-    inclination = radians(inclination_deg)
-    phase = radians(phase_deg)
-    time = [float(i*40) for i in range(151)]
-    pos = []
-    for t in time:
-        theta = 2*pi*t/period_s + phase
-        xi = radius * cos(theta)
-        yi = radius * sin(theta) * cos(inclination)
-        zi = radius * sin(theta) * sin(inclination)
-        spin = earth_spin_rad_s * t
-        pos.append((cos(spin)*xi + sin(spin)*yi,
-                    -sin(spin)*xi + cos(spin)*yi, zi))
-    return EcefTrajectory.from_arrays(name, time, pos, color=color)
-
-
-def stationary_ground(name: str, *, lon: float, lat: float, color: str) -> EcefTrajectory:
-    point = geodetic_to_ecef(lon, lat)
-    return EcefTrajectory.from_arrays(name, [0., 6000.],
-        [[point.x_m, point.y_m, point.z_m]] * 2, color=color)
 
 
 def main() -> None:
@@ -53,7 +29,7 @@ def main() -> None:
                         height_m=550_000, phase_deg=18, color="#ffbd69"),
         synthetic_orbit("LEO / 97°", inclination_deg=97, period_s=6100,
                         height_m=740_000, phase_deg=135, color="#63d8fc"),
-        stationary_ground("Ground site", lon=-86.59, lat=34.72, color="#ec87b2"),
+        stationary_ground("Ground site", lon_deg=-86.59, lat_deg=34.72, color="#ec87b2"),
     )
     geo = geodetic_to_ecef(-75, 0, 35_786_000)
     geo_track = EcefTrajectory.from_arrays("GEO / -75°", [0, 6000],
@@ -74,7 +50,7 @@ def main() -> None:
                          title=f"ECEF ground projections • {mode.title()} • t = {at_s:g} s")
         matplotlib_globe(out / f"globe_{mode}.png", mode=mode,
                          trajectories=paths, at_s=at_s,
-                         center_lon=-45, center_lat=30, extent_earth_radii=1.33)
+                         center_lon_deg=-45, center_lat_deg=30, extent_earth_radii=1.33)
     matplotlib_ecef_timeseries(out / "ecef_xyz_vs_time.png", paths)
     save_svg(str(out / "ecef_political.svg"), trajectories=list(paths), at_s=at_s)
     save_svg(str(out / "ecef_combined.svg"), trajectories=list(paths), at_s=at_s, mode="combined")

@@ -18,6 +18,6 @@ trenton-maps = "trenton_offline_maps.cli:main"
 license-files = ["licenses/*.txt", "licenses/README.md"]
 
 [tool.setuptools.package-data]
-trenton_offline_maps = ["data/*.json", "data/*.jpg", "data/*.txt"]
+trenton_offline_maps = ["data/*.json", "data/*.jpg", "data/*.txt", "templates/*.html"]
 [tool.setuptools.packages.find]
 where = ["src"]
