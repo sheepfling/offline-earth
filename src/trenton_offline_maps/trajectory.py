@@ -197,18 +197,33 @@ def _parse_epoch(value: object) -> datetime | None:
     return result
 
 
+def _validate_json_metadata(value: object) -> None:
+    """Reject explicit frame/unit conflicts; absent legacy metadata is allowed."""
+    if not isinstance(value, dict):
+        raise ValueError("Trajectory JSON must contain objects")
+    for key, expected in (("frame", "ECEF"), ("units", "metres"),
+                          ("time_units", "seconds")):
+        if key in value and value[key] != expected:
+            raise ValueError(f"JSON {key} must be {expected!r}; got {value[key]!r}. "
+                             "Coordinate and time conversion is not performed.")
+
+
 def read_trajectories(path: str | Path) -> tuple[EcefTrajectory, ...]:
     """Read UTF-8 .json or long-form .csv (name,time_s,x_m,y_m,z_m).
 
     Coordinates are already ECEF, not ECI; times are seconds relative to
     the supplied epoch (when given), not Unix timestamps by default.
+    JSON metadata, when present, must be ECEF/metres/seconds at both the
+    document and trajectory levels. Omitted metadata retains the legacy defaults.
     """
     path = Path(path)
     if path.suffix.lower() == ".json":
         raw = json.loads(path.read_text(encoding="utf-8"))
+        _validate_json_metadata(raw)
         entries = raw["trajectories"] if isinstance(raw, dict) and "trajectories" in raw else [raw]
         result = []
         for entry in entries:
+            _validate_json_metadata(entry)
             result.append(EcefTrajectory.from_arrays(
                 str(entry["name"]),
                 [sample["time_s"] for sample in entry["samples"]],

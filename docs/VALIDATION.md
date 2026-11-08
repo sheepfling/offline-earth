@@ -21,3 +21,12 @@ Dependencies were acquired online as wheels for the development environment. Thi
 invalidate offline runtime testing; it also does not constitute an offline wheelhouse delivery.
 Python monkeypatch tests do not prove absence of every conceivable native-library network call.
 Canvas's deny-network CSP is defense in depth, not a general OS network sandbox.
+
+## Ingestion regression update (2026-11-08)
+
+Explicitly conflicting JSON frame, spatial units and time units are now rejected
+at document and trajectory levels, including single-trajectory input. Missing
+metadata preserves the legacy ECEF/metres/seconds defaults. The full suite now
+has 55 passing cases, including metadata round-trip, 18 conflicting/null cases,
+and two legacy compatibility cases. Browser and optional wheelhouse claims
+remain unchanged and unverified.

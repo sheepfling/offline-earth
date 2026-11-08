@@ -142,3 +142,50 @@ def test_canvas_escapes_html_sensitive_names(tmp_path: Path) -> None:
     html = output.read_text()
     assert "<script>bad()" not in html
     assert "\\u003cscript" in html
+
+
+@pytest.mark.parametrize("location", ["document", "entry", "single"])
+@pytest.mark.parametrize("key,bad", [
+    ("frame", "ECI"), ("units", "kilometres"), ("time_units", "days"),
+    ("frame", None), ("units", None), ("time_units", None),
+])
+def test_json_rejects_conflicting_metadata(tmp_path: Path, location, key, bad) -> None:
+    import json
+    tr = EcefTrajectory.from_arrays("Demo", [0, 1], [(7e6, 0, 0), (7e6, 1, 1)])
+    entry = tr.to_dict()
+    raw = {"frame": "ECEF", "units": "metres", "time_units": "seconds",
+           "trajectories": [entry]}
+    if location == "document":
+        raw[key] = bad
+    elif location == "entry":
+        entry[key] = bad
+    else:
+        raw = entry
+        raw[key] = bad
+    path = tmp_path / "conflicting.json"
+    path.write_text(json.dumps(raw))
+    with pytest.raises(ValueError, match=f"JSON {key} must be"):
+        read_trajectories(path)
+
+
+def test_json_metadata_round_trip(tmp_path: Path) -> None:
+    import json
+    from datetime import datetime, timezone
+    tr = EcefTrajectory.from_arrays("Demo", [0, 1], [(7e6, 0, 0), (7e6, 1, 1)],
+                                   epoch_utc=datetime(2026, 1, 1, tzinfo=timezone.utc))
+    path = tmp_path / "roundtrip.json"
+    write_trajectories(path, [tr])
+    raw = json.loads(path.read_text())
+    assert {key: raw[key] for key in ("frame", "units", "time_units")} == {
+        "frame": "ECEF", "units": "metres", "time_units": "seconds"}
+    assert read_trajectories(path) == (tr,)
+
+
+@pytest.mark.parametrize("wrapped", [False, True])
+def test_json_legacy_missing_metadata(tmp_path: Path, wrapped: bool) -> None:
+    import json
+    tr = EcefTrajectory.from_arrays("Legacy", [0], [(7e6, 0, 0)])
+    entry = tr.to_dict()
+    path = tmp_path / "legacy.json"
+    path.write_text(json.dumps({"trajectories": [entry]} if wrapped else entry))
+    assert read_trajectories(path) == (tr,)

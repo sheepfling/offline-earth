@@ -93,3 +93,13 @@ The Matplotlib and Canvas Earth image projection is intentionally spherical for 
 ## Known gaps
 
 No orbit dynamics or ECI→ECEF conversion, terrain, satellite imagery by date, state/province/county borders, local elevation model, ellipsoidal horizon limb clipping for every line segment, or high-accuracy atmospheric refraction. Borders are simplified Natural Earth country geometries and some disputed boundaries may be represented differently in other datasets.
+
+## JSON metadata validation
+
+At both the document wrapper and individual trajectory level, explicitly supplied
+`frame`, `units`, and `time_units` must be exactly `"ECEF"`, `"metres"`, and
+`"seconds"`, respectively. Conflicting values, alternate spellings/case and null
+values raise `ValueError` before positions are interpreted. No conversion is
+performed. Legacy JSON omitting any or all metadata remains supported and uses
+ECEF metres and elapsed seconds, as also expressed by `ecef_m` and `time_s`.
+This applies to wrapped trajectory collections and single-trajectory JSON.
