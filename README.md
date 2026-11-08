@@ -21,6 +21,11 @@ trenton-maps earth.svg --renderer svg --mode political \
   --ecef examples/data/sample_ecef.json
 ```
 
+For a small Python example, run `python examples/quickstart.py` after installing
+only the core wheel. It creates `earth.html` with an illustrative ECEF path and
+time controls; no `[examples]` extra or plotting dependencies are needed. The
+larger gallery scripts are opt-in and are not included in the installed wheel.
+
 Open `earth.html` directly in a local browser. No server is needed. Build the wheel first
 from a checkout (see below); wheels are not committed or automatically released.
 
