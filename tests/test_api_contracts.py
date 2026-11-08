@@ -1,4 +1,7 @@
 """Public units/path contracts and renderer-independent domain utilities."""
+
+from trenton_offline_maps.timeseries import matplotlib_ecef_timeseries
+from trenton_offline_maps import earth
 import importlib
 import json
 import subprocess
@@ -41,10 +44,8 @@ def test_all_public_renderers_accept_pathlike_and_create_parent(tmp_path, backen
     if backend == 'svg':save_svg(UserPath(target), trajectories=[tr])
     elif backend == 'canvas':canvas_globe(UserPath(target), trajectories=[tr])
     elif backend == 'timeseries':
-        from trenton_offline_maps.timeseries import matplotlib_ecef_timeseries
         matplotlib_ecef_timeseries(UserPath(target), [tr])
     else:
-        from trenton_offline_maps import earth
         function = {'map':earth.matplotlib_world, 'globe':earth.matplotlib_globe,
                     'plotly':earth.plotly_globe}[backend]
         function(UserPath(target), trajectories=[tr])

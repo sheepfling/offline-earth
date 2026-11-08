@@ -39,7 +39,7 @@ def synthetic_orbit(name: str, *, inclination_deg: float, period_s: float,
     return EcefTrajectory.from_arrays(name, time, pos, color=color)
 
 
-def stationary_ground(name: str, lon: float, lat: float, color: str) -> EcefTrajectory:
+def stationary_ground(name: str, *, lon: float, lat: float, color: str) -> EcefTrajectory:
     point = geodetic_to_ecef(lon, lat)
     return EcefTrajectory.from_arrays(name, [0., 6000.],
         [[point.x_m, point.y_m, point.z_m]] * 2, color=color)

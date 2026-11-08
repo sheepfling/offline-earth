@@ -10,7 +10,7 @@ from math import cos, pi, radians, sin
 from .paths import PathInput, output_path
 from .geometry import Degrees, GroundTrack
 from .constants import (DEFAULT_CENTER_LON_DEG, DEFAULT_CENTER_LAT_DEG, DEFAULT_EXTENT_EARTH_RADII)
-from typing import Literal, Sequence
+from typing import TYPE_CHECKING, Literal, Sequence
 from .trajectory import EcefTrajectory, ecef_to_geodetic, geodetic_to_ecef, project_orthographic_ecef
 
 from .assets import countries
@@ -20,6 +20,10 @@ from .constants import (EARTH_RADIUS_KM, METRES_PER_KM, WGS84_A_M, WGS84_E2,
                         TEXTURE_WIDTH_PX, TEXTURE_HEIGHT_PX, ORTHOGRAPHIC_EXTENT)
 from .geometry import Vector3, LonLatDegrees, camera_basis, camera_to_world, split_antimeridian
 from .geometry import ViewMode
+# Static array types must not make NumPy a required runtime dependency.
+if TYPE_CHECKING:
+    import numpy as np
+
 Track = GroundTrack
 
 
@@ -35,7 +39,7 @@ def demo_ground_track(samples: int = 240, inclination_deg: Degrees = 51.6) -> li
     return [LonLatDegrees(-180 + 360 * i / (samples - 1), inclination_deg * sin(4 * pi * i / (samples - 1))) for i in range(samples)]
 
 
-def _texture_rgb() -> "np.ndarray":
+def _texture_rgb() -> np.ndarray:
     import numpy as np
     from PIL import Image
     return np.asarray(Image.open(BytesIO(blue_marble_bytes())).convert("RGB"))
@@ -99,7 +103,7 @@ def matplotlib_world(
     plt.close(fig)
 
 
-def _political_mask() -> "np.ndarray":
+def _political_mask() -> np.ndarray:
     """Rasterize bundled vector land geometry for fast orthographic shading."""
     import numpy as np
     from PIL import Image, ImageDraw
@@ -119,7 +123,7 @@ def orthographic_rgb(
     center_lon: Degrees = DEFAULT_CENTER_LON_DEG,
     center_lat: Degrees = DEFAULT_CENTER_LAT_DEG,
     size: int = 800,
-) -> "np.ndarray":
+) -> np.ndarray:
     """Project local imagery to RGBA. center_lon and center_lat are degrees."""
     import numpy as np
     if mode not in ("imagery", "political", "combined"):

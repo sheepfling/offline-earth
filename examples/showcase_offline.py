@@ -1,6 +1,8 @@
 """Build an offline, reviewer-friendly Earth visualization gallery."""
 from pathlib import Path
 
+from trenton_offline_maps.canvas import canvas_globe
+
 from trenton_offline_maps import save_svg
 from trenton_offline_maps.earth import (
     demo_ground_track, matplotlib_globe, matplotlib_world, plotly_globe,
@@ -19,7 +21,6 @@ def main() -> None:
         matplotlib_world(out / f"map_{view}.png", mode=view, track=track)
         matplotlib_globe(out / f"globe_{view}.png", mode=view, track=track)
     plotly_globe(out / "interactive_earth_offline.html", track=track)
-    from trenton_offline_maps.canvas import canvas_globe
     canvas_globe(out / "interactive_canvas_no_webgl.html", track=track)
 
     # Contact sheet with actual saved output, rather than an illustrative mock-up.

@@ -1,6 +1,13 @@
 """ECEF geometry, time consistency, and local-file adapter contract tests."""
 from __future__ import annotations
 
+import json
+from datetime import datetime, timezone
+from trenton_offline_maps.visualize import RenderSpec, render_ecef
+from trenton_offline_maps import svg_map
+from trenton_offline_maps.canvas import canvas_globe
+from test_rendering_offline import _Assets
+
 import csv
 import math
 import socket
@@ -104,15 +111,12 @@ def test_all_outputs_offline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     assert 'const ecefTrajectories = [' in canvas and 'id="time"' in canvas
     assert "https://" not in canvas and "http://" not in canvas
     plotly = (tmp_path / "plotly.html").read_text()
-    from test_rendering_offline import _Assets
     parser = _Assets()
     parser.feed(plotly)
     assert not parser.external
 
 
 def test_unified_render_interface_and_epoch_consistency(tmp_path: Path) -> None:
-    from datetime import datetime, timezone, timedelta
-    from trenton_offline_maps.visualize import RenderSpec, render_ecef
     tr = EcefTrajectory.from_arrays("object", [0, 1], [(6_800_000,0,0),(6_799_000,20,20)])
     assert render_ecef([tr], tmp_path / "world.svg", spec=RenderSpec(backend="svg")) .exists()
     assert render_ecef([tr], tmp_path / "globe.html", spec=RenderSpec(backend="canvas")).exists()
@@ -124,7 +128,6 @@ def test_unified_render_interface_and_epoch_consistency(tmp_path: Path) -> None:
 
 
 def test_svg_imagery_combined_embeds_local_jpeg() -> None:
-    from trenton_offline_maps import svg_map
     combined = svg_map(mode="combined", width=400, height=200)
     imagery = svg_map(mode="imagery", width=400, height=200)
     assert 'href="data:image/jpeg;base64,' in combined
@@ -134,7 +137,6 @@ def test_svg_imagery_combined_embeds_local_jpeg() -> None:
 
 
 def test_canvas_escapes_html_sensitive_names(tmp_path: Path) -> None:
-    from trenton_offline_maps.canvas import canvas_globe
     malicious = EcefTrajectory.from_arrays("</script><script>bad()</script>",
                     [0], [(7_000_000, 0, 0)])
     output = tmp_path / "safe.html"
@@ -150,7 +152,6 @@ def test_canvas_escapes_html_sensitive_names(tmp_path: Path) -> None:
     ("frame", None), ("units", None), ("time_units", None),
 ])
 def test_json_rejects_conflicting_metadata(tmp_path: Path, location, key, bad) -> None:
-    import json
     tr = EcefTrajectory.from_arrays("Demo", [0, 1], [(7e6, 0, 0), (7e6, 1, 1)])
     entry = tr.to_dict()
     raw = {"frame": "ECEF", "units": "metres", "time_units": "seconds",
@@ -169,8 +170,6 @@ def test_json_rejects_conflicting_metadata(tmp_path: Path, location, key, bad) -
 
 
 def test_json_metadata_round_trip(tmp_path: Path) -> None:
-    import json
-    from datetime import datetime, timezone
     tr = EcefTrajectory.from_arrays("Demo", [0, 1], [(7e6, 0, 0), (7e6, 1, 1)],
                                    epoch_utc=datetime(2026, 1, 1, tzinfo=timezone.utc))
     path = tmp_path / "roundtrip.json"
@@ -183,9 +182,29 @@ def test_json_metadata_round_trip(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize("wrapped", [False, True])
 def test_json_legacy_missing_metadata(tmp_path: Path, wrapped: bool) -> None:
-    import json
     tr = EcefTrajectory.from_arrays("Legacy", [0], [(7e6, 0, 0)])
     entry = tr.to_dict()
     path = tmp_path / "legacy.json"
     path.write_text(json.dumps({"trajectories": [entry]} if wrapped else entry))
     assert read_trajectories(path) == (tr,)
+
+
+@pytest.mark.parametrize('lon,lat,expected', [
+    (0, 0, (6378137.0, 0, 0)),
+    (90, 0, (0, 6378137.0, 0)),
+    (0, 90, (0, 0, 6356752.314245179)),
+])
+def test_wgs84_reference_axes(lon, lat, expected):
+    # Independent WGS84 reference values, not constants imported from production.
+    # Unlike a round trip, this catches matching mistakes in both conversions.
+    actual = geodetic_to_ecef(lon, lat)
+    assert (actual.x_m, actual.y_m, actual.z_m) == pytest.approx(expected, abs=1e-6)
+
+
+def test_trajectory_record_shape_and_copy_isolation():
+    tr = EcefTrajectory.from_arrays('record', [0], [(7e6, 1, 2)])
+    record = tr.to_dict()
+    assert record == {'name': 'record', 'color': '#ffbd69', 'epoch_utc': None,
+                      'samples': [{'time_s': 0, 'ecef_m': [7e6, 1, 2]}]}
+    record['samples'][0]['ecef_m'][0] = 0
+    assert tr.samples[0].position.x_m == 7e6

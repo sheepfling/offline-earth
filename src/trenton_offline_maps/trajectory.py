@@ -13,12 +13,24 @@ from bisect import bisect_right
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from math import atan2, cos, degrees, hypot, isfinite, radians, sin, sqrt
-from typing import Iterable, Sequence
+from typing import Iterable, Sequence, TypedDict
 
 from .constants import WGS84_A_M, WGS84_F, WGS84_E2, WGS84_B_M, EARTH_RADIUS_M
 from .geometry import (Degrees, LonLatDegrees, TimeRangeSeconds, OrthographicPoint,
                        camera_basis, split_antimeridian)
 from .paths import PathInput, input_path, output_path
+
+
+class SampleRecord(TypedDict):
+    time_s: float
+    ecef_m: list[float]
+
+
+class TrajectoryRecord(TypedDict):
+    name: str
+    color: str
+    epoch_utc: str | None
+    samples: list[SampleRecord]
 
 
 @dataclass(frozen=True, slots=True)
@@ -159,7 +171,7 @@ class EcefTrajectory:
         ll = [ecef_to_geodetic(p.position) for p in self.samples]
         return [LonLatDegrees(p.lon_deg, p.lat_deg) for p in ll]
 
-    def to_dict(self) -> dict[str, object]:
+    def to_dict(self) -> TrajectoryRecord:
         return {
             "name": self.name, "color": self.color,
             "epoch_utc": self.epoch_utc.astimezone(timezone.utc).isoformat() if self.epoch_utc else None,
@@ -202,7 +214,7 @@ def read_trajectories(path: PathInput) -> tuple[EcefTrajectory, ...]:
     if path.suffix.lower() == ".json":
         raw = json.loads(path.read_text(encoding="utf-8"))
         _validate_json_metadata(raw)
-        entries = raw["trajectories"] if isinstance(raw, dict) and "trajectories" in raw else [raw]
+        entries = raw["trajectories"] if "trajectories" in raw else [raw]
         result = []
         for entry in entries:
             _validate_json_metadata(entry)

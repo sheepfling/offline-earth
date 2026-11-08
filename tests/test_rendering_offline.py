@@ -1,6 +1,8 @@
 """Network-blocked smoke tests for image generation and HTML assets."""
 from __future__ import annotations
 
+from trenton_offline_maps.canvas import canvas_globe
+
 import socket
 from collections.abc import Iterable
 from html.parser import HTMLParser
@@ -75,7 +77,6 @@ def test_interactive_html_self_contained(tmp_path: Path) -> None:
 
 
 def test_canvas_globe_is_single_file_and_no_webgl(tmp_path: Path) -> None:
-    from trenton_offline_maps.canvas import canvas_globe
     output = tmp_path / "earth_canvas.html"
     canvas_globe(output)
     html = output.read_text(encoding="utf-8")

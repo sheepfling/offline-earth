@@ -2,14 +2,14 @@
 import email
 import hashlib
 import json
-from pathlib import Path
+from pathlib import PurePosixPath
 import subprocess
 import sys
 import zipfile
 
 
-def test_built_core_wheel_contract(tmp_path):
-    root = Path(__file__).resolve().parents[1]
+def test_built_core_wheel_contract(tmp_path, pytestconfig):
+    root = pytestconfig.rootpath
     subprocess.run([sys.executable, '-m', 'pip', 'wheel', '--no-index',
                     '--no-deps', '--no-build-isolation', str(root),
                     '--wheel-dir', str(tmp_path)], check=True, capture_output=True)
@@ -17,12 +17,16 @@ def test_built_core_wheel_contract(tmp_path):
     assert wheel.stat().st_size < 3_000_000, 'Review unexpected wheel growth'
     with zipfile.ZipFile(wheel) as archive:
         names = archive.namelist()
-        assert all(name.startswith(('trenton_offline_maps/',
-                                    'trenton_offline_maps-')) for name in names)
-        assert not any(name.startswith(('examples/', 'tests/', 'tools/', 'artifacts/'))
-                       for name in names)
-        metadata = email.message_from_bytes(archive.read(next(
-            name for name in names if name.endswith('.dist-info/METADATA'))))
+        members = [PurePosixPath(name) for name in names]
+        assert all(not path.is_absolute() and '..' not in path.parts for path in members)
+        assert all(path.parts[0] == 'trenton_offline_maps' or
+                   (path.parts[0].startswith('trenton_offline_maps-') and
+                    path.parts[0].endswith('.dist-info')) for path in members)
+        assert not any(path.parts[0] in {'examples', 'tests', 'tools', 'artifacts'}
+                       for path in members)
+        metadata_path, = [path for path in members if path.name == 'METADATA'
+                          and path.parent.suffix == '.dist-info']
+        metadata = email.message_from_bytes(archive.read(str(metadata_path)))
         # All requirements must be gated by an explicit extra, never core imports.
         assert all('; extra ==' in req for req in metadata.get_all('Requires-Dist', []))
         assert {'dev', 'examples', 'plot', 'interactive'} <= set(metadata.get_all('Provides-Extra', []))

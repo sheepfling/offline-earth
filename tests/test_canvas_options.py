@@ -1,4 +1,6 @@
 import json
+
+from trenton_offline_maps.canvas import _script_json
 import pytest
 from trenton_offline_maps.canvas import canvas_globe
 from trenton_offline_maps.trajectory import EcefTrajectory
@@ -24,7 +26,6 @@ def test_canvas_rejects_invalid_settings(tmp_path, kwargs):
 
 
 def test_script_json_escapes_nested_values_without_changing_data():
-    from trenton_offline_maps.canvas import _script_json
     original = {'nested': ['</script><script>alert(1)</script>', '&<>', 'quote"', '\u2028']}
     encoded = _script_json(original)
     assert '<' not in encoded and '>' not in encoded and '&' not in encoded
@@ -44,6 +45,5 @@ def test_canvas_escapes_all_caller_track_json(tmp_path):
 
 @pytest.mark.parametrize('bad', [float('nan'), float('inf'), -float('inf')])
 def test_script_json_rejects_nonfinite_numbers(bad):
-    from trenton_offline_maps.canvas import _script_json
     with pytest.raises(ValueError):
         _script_json({'coordinate': bad})
