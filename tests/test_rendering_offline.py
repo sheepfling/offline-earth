@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import socket
+from collections.abc import Iterable
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -21,7 +22,7 @@ class _Assets(HTMLParser):
         super().__init__()
         self.external: list[str] = []
 
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+    def handle_starttag(self, tag: str, attrs: Iterable[tuple[str, str | None]]) -> None:
         for key, val in attrs:
             if val and ((tag == "script" and key == "src") or
                         (tag == "link" and key == "href") or

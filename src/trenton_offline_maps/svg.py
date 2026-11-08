@@ -1,15 +1,16 @@
 """Dependency-free SVG renderer."""
 from __future__ import annotations
+import base64
 from typing import Any, Literal, Sequence
 from .geometry import GroundTrack, LonLatInput
 from .assets import countries, blue_marble_bytes
 from .paths import PathInput, output_path
-from .trajectory import EcefTrajectory
+from .trajectory import EcefTrajectory, ecef_to_geodetic, split_antimeridian
 
 def svg_map(*, width: int = 1200, height: int = 620,
             tracks: Sequence[GroundTrack] | None = None,
             stations: Sequence[LonLatInput] | None = None,
-            trajectories: list["EcefTrajectory"] | None = None,
+            trajectories: Sequence[EcefTrajectory] | None = None,
             at_s: float | None = None,
             mode: Literal["political", "imagery", "combined"] = "political") -> str:
     """Render self-contained SVG; no web, plotting package, or external asset needed."""
@@ -20,7 +21,6 @@ def svg_map(*, width: int = 1200, height: int = 620,
     parts=[f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
            '<rect width="100%" height="100%" fill="#102a43"/>']
     if mode in ("imagery", "combined"):
-        import base64
         data = blue_marble_bytes()
         encoded = base64.b64encode(data).decode("ascii")
         parts.append(f'<image x="0" y="0" width="{width}" height="{height}" '
@@ -38,7 +38,6 @@ def svg_map(*, width: int = 1200, height: int = 620,
         pts=' '.join(f'{x:.1f},{y:.1f}' for lon,lat in track for x,y in [xy(lon,lat)])
         parts.append(f'<polyline points="{pts}" fill="none" stroke="#ff9e45" stroke-width="2.5"/>')
     if trajectories:
-        from .trajectory import ecef_to_geodetic, split_antimeridian
         for tr in trajectories:
             for segment in split_antimeridian(tr.ground_track()):
                 pts = ' '.join(f'{x:.1f},{y:.1f}' for lon,lat in segment for x,y in [xy(lon,lat)])

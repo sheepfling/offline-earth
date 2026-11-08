@@ -5,12 +5,13 @@ All image/geometry assets are loaded from the installed wheel.
 """
 from __future__ import annotations
 
+from io import BytesIO
 from math import cos, pi, radians, sin
 from .paths import PathInput, output_path
 from .geometry import Degrees, GroundTrack
 from .constants import (DEFAULT_CENTER_LON_DEG, DEFAULT_CENTER_LAT_DEG, DEFAULT_EXTENT_EARTH_RADII)
 from typing import Literal, Sequence
-from .trajectory import EcefTrajectory
+from .trajectory import EcefTrajectory, ecef_to_geodetic, geodetic_to_ecef, project_orthographic_ecef
 
 from .assets import countries
 
@@ -29,14 +30,12 @@ def sphere_xyz(lon_deg: float, lat_deg: float, radius: float = EARTH_RADIUS_KM) 
 
 def demo_ground_track(samples: int = 240, inclination_deg: Degrees = 51.6) -> list[LonLatDegrees]:
     """Synthetic illustrative track, NOT derived from orbital propagation."""
-    from math import sin
     if samples < 2:
         raise ValueError("samples must be at least 2")
     return [LonLatDegrees(-180 + 360 * i / (samples - 1), inclination_deg * sin(4 * pi * i / (samples - 1))) for i in range(samples)]
 
 
 def _texture_rgb() -> "np.ndarray":
-    from io import BytesIO
     import numpy as np
     from PIL import Image
     return np.asarray(Image.open(BytesIO(blue_marble_bytes())).convert("RGB"))
@@ -48,7 +47,7 @@ def matplotlib_world(
     mode: ViewMode = "combined",
     track: Track | None = None,
     title: str | None = None,
-    trajectories: Sequence["EcefTrajectory"] = (),
+    trajectories: Sequence[EcefTrajectory] = (),
     at_s: float | None = None,
 ) -> None:
     """Render a 2D equirectangular world map as PNG/SVG/PDF through Matplotlib."""
@@ -74,7 +73,6 @@ def matplotlib_world(
         for segment in split_antimeridian(track):
             ax.plot([p[0] for p in segment], [p[1] for p in segment], color="#ffb65e", linewidth=2.0, zorder=5)
     if trajectories:
-        from .trajectory import ecef_to_geodetic, split_antimeridian
         for tr in trajectories:
             for segment in split_antimeridian(tr.ground_track()):
                 ax.plot([p[0] for p in segment], [p[1] for p in segment],
@@ -192,7 +190,7 @@ def matplotlib_globe(
     center_lat: Degrees = DEFAULT_CENTER_LAT_DEG,
     track: Track | None = None,
     size: int = 780,
-    trajectories: Sequence["EcefTrajectory"] = (),
+    trajectories: Sequence[EcefTrajectory] = (),
     at_s: float | None = None,
     extent_earth_radii: float = 1.33,
 ) -> None:
@@ -222,7 +220,6 @@ def matplotlib_globe(
         for sx, sy in _project_ring(track, forward, east, north):
             ax.plot(sx, sy, color="#ffb160", lw=2.6, zorder=6)
     if trajectories:
-        from .trajectory import project_orthographic_ecef
         for tr in trajectories:
             px: list[float] = []; py: list[float] = []
             for sample in tr.samples:
@@ -263,7 +260,7 @@ def plotly_globe(
     *,
     track: Track | None = None,
     include_imagery: bool = True,
-    trajectories: Sequence["EcefTrajectory"] = (),
+    trajectories: Sequence[EcefTrajectory] = (),
     at_s: float | None = None,
 ) -> None:
     """Self-contained interactive 3D globe with three toggleable visualization modes.
@@ -271,7 +268,6 @@ def plotly_globe(
     Uses Pillow color quantization to encode the local RGB raster as a Plotly
     surface colorscale. The HTML embeds all JS and all geometry; no CDN.
     """
-    from io import BytesIO
     import numpy as np
     from PIL import Image
     import plotly.graph_objects as go
@@ -285,7 +281,6 @@ def plotly_globe(
     lat = np.linspace(pi/2, -pi/2, 91)
     lon = np.linspace(-pi, pi, 180)
     lon2, lat2 = np.meshgrid(lon, lat)
-    from .trajectory import geodetic_to_ecef
     n = WGS84_A_M / np.sqrt(1 - WGS84_E2 * np.sin(lat2)**2)
     x = n * np.cos(lat2)*np.cos(lon2) / METRES_PER_KM
     y = n * np.cos(lat2)*np.sin(lon2) / METRES_PER_KM

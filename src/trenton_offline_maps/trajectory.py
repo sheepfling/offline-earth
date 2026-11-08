@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 from bisect import bisect_right
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -114,7 +115,6 @@ class EcefTrajectory:
                                           self.epoch_utc.utcoffset() is None):
             raise ValueError("epoch_utc must be timezone-aware")
         # Hex colors only: safe to inject into CSS/SVG/HTML without script escape.
-        import re
         if re.fullmatch(r"#[0-9a-fA-F]{6}", self.color) is None:
             raise ValueError("color must be #RRGGBB")
 
@@ -122,7 +122,7 @@ class EcefTrajectory:
     def from_arrays(
         cls, name: str, time_s: Sequence[float], xyz_m: Sequence[Sequence[float]],
         *, color: str = "#ffbd69", epoch_utc: datetime | None = None,
-    ) -> "EcefTrajectory":
+    ) -> EcefTrajectory:
         if len(time_s) != len(xyz_m):
             raise ValueError("time and position array lengths must match")
         samples: list[EcefSample] = []

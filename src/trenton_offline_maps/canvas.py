@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 import json
+from math import isfinite
 from .paths import PathInput, output_path
 from .geometry import Degrees, GroundTrack, ViewMode
 from .constants import (DEFAULT_CENTER_LON_DEG, DEFAULT_CENTER_LAT_DEG, DEFAULT_EXTENT_EARTH_RADII)
@@ -14,14 +15,23 @@ from .assets import blue_marble_bytes
 from .constants import EARTH_RADIUS_M, WGS84_A_M, WGS84_B_M, TEXTURE_WIDTH_PX, TEXTURE_HEIGHT_PX
 
 
+def _script_json(value: object) -> str:
+    """Serialize JSON for an inline script, not an HTML attribute or executable code.
+
+    json.dumps handles JSON quoting; these escapes prevent HTML's parser from
+    interpreting script terminators or markup, including nested caller data.
+    """
+    encoded = json.dumps(value, separators=(",", ":"), allow_nan=False)
+    return encoded.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+
+
 def canvas_globe(
     path: PathInput, *, track: GroundTrack | None = None,
-    trajectories: Sequence["EcefTrajectory"] = (),
+    trajectories: Sequence[EcefTrajectory] = (),
     mode: ViewMode = "combined", at_s: float | None = None,
     center_lon: Degrees = DEFAULT_CENTER_LON_DEG, center_lat: Degrees = DEFAULT_CENTER_LAT_DEG,
 ) -> None:
     """Write HTML containing local imagery, borders, and a CPU-rendered globe; camera longitude/latitude are degrees."""
-    from math import isfinite
     if mode not in ("imagery", "political", "combined"):
         raise ValueError("Unrecognized Earth display mode")
     if not all(isfinite(v) for v in (center_lon, center_lat)) or not -90 <= center_lat <= 90:
@@ -31,20 +41,19 @@ def canvas_globe(
     times = [s.t_s for tr in trajectories for s in tr.samples]
     if at_s is not None and times and not min(times) <= at_s <= max(times):
         raise ValueError("at_s outside trajectory time range")
-    config = json.dumps(dict(mode=mode, at_s=at_s, center_lon=center_lon,
-                             center_lat=center_lat), allow_nan=False)
-    constants = json.dumps(dict(radius_m=EARTH_RADIUS_M, a_m=WGS84_A_M, b_m=WGS84_B_M,
+    config = _script_json(dict(mode=mode, at_s=at_s, center_lon=center_lon,
+                               center_lat=center_lat))
+    constants = _script_json(dict(radius_m=EARTH_RADIUS_M, a_m=WGS84_A_M, b_m=WGS84_B_M,
                                 texture_width=TEXTURE_WIDTH_PX, texture_height=TEXTURE_HEIGHT_PX))
     page = _HTML.replace("__EARTH_CONSTANTS__", constants).replace("__INITIAL_CONFIG__", config)
     page = page.replace("__BLUE_MARBLE_BASE64__", base64.b64encode(blue_marble_bytes()).decode("ascii"))
-    page = page.replace("__BORDERS_JSON__", json.dumps([c["rings"] for c in countries()], separators=(",", ":")))
-    page = page.replace("__TRACK_JSON__", json.dumps(list(track or []), separators=(",", ":")))
+    page = page.replace("__BORDERS_JSON__", _script_json([c["rings"] for c in countries()]))
+    page = page.replace("__TRACK_JSON__", _script_json(list(track or [])))
     # JSON is embedded in a script tag, so escape its HTML-significant characters.
     ecef = [{"name": tr.name, "color": tr.color, "samples": [
         [sm.t_s, sm.position.x_m, sm.position.y_m, sm.position.z_m]
         for sm in tr.samples]} for tr in trajectories]
-    serialized = json.dumps(ecef, separators=(",", ":"), allow_nan=False)
-    serialized = serialized.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+    serialized = _script_json(ecef)
     page = page.replace("__ECEF_JSON__", serialized)
     output_path(path).write_text(page, encoding="utf-8")
 

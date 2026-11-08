@@ -3,6 +3,9 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+from collections.abc import Sequence
+from .canvas import canvas_globe
+from .svg import save_svg
 from .paths import output_path
 from .constants import DEFAULT_CENTER_LON_DEG, DEFAULT_CENTER_LAT_DEG, DEFAULT_EXTENT_EARTH_RADII
 
@@ -11,7 +14,7 @@ from .trajectory import EcefTrajectory, read_trajectories
 from .visualize import RenderSpec, render_ecef
 
 
-def main(argv: list[str] | None = None) -> None:
+def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Offline political/Blue Marble Earth + ECEF trajectories")
     parser.add_argument("output", nargs="?", default="world.svg", help="Destination output file")
     parser.add_argument("--renderer", choices=("svg", "map", "globe", "interactive", "canvas", "timeseries"), default="svg")
@@ -42,11 +45,9 @@ def main(argv: list[str] | None = None) -> None:
         elif args.renderer == "interactive":
             plotly_globe(path, track=track, include_imagery=(args.mode != "political"))
         elif args.renderer == "canvas":
-            from .canvas import canvas_globe
             canvas_globe(path, track=track, mode=args.mode,
                          center_lon=args.center_lon, center_lat=args.center_lat)
         elif args.renderer == "svg":
-            from .svg import save_svg
             save_svg(str(path), tracks=[track], mode=args.mode)
         else:
             parser.error("--track cannot produce time series: no timestamps supplied")
