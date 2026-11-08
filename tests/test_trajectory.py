@@ -3,12 +3,12 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
-from trenton_offline_maps.visualize import RenderSpec, render_ecef
-from trenton_offline_maps import save_svg, svg_map
-from trenton_offline_maps.canvas import canvas_globe
-from trenton_offline_maps.renderers.matplotlib import matplotlib_globe, matplotlib_world
-from trenton_offline_maps.renderers.plotly import plotly_globe
-from trenton_offline_maps.timeseries import matplotlib_ecef_timeseries
+from offline_earth.visualize import RenderSpec, render_ecef
+from offline_earth import save_svg, svg_map
+from offline_earth.canvas import canvas_globe
+from offline_earth.renderers.matplotlib import matplotlib_globe, matplotlib_world
+from offline_earth.renderers.plotly import plotly_globe
+from offline_earth.timeseries import matplotlib_ecef_timeseries
 from test_rendering_offline import _Assets
 
 import csv
@@ -21,7 +21,7 @@ from pathlib import Path
 
 import pytest
 
-from trenton_offline_maps.trajectory import (
+from offline_earth.trajectory import (
     EcefPosition, EcefTrajectory, ecef_to_geodetic, geodetic_to_ecef,
     project_orthographic_ecef, read_trajectories, split_antimeridian,
     write_trajectories,
@@ -220,7 +220,7 @@ import sys
 import socket
 from pathlib import Path
 
-roots = ('trenton_offline_maps', 'numpy', 'PIL', 'matplotlib', 'plotly')
+roots = ('offline_earth', 'numpy', 'PIL', 'matplotlib', 'plotly')
 assert not any(name.split('.')[0] in roots for name in sys.modules)
 attempts = []
 def deny_network(event, args):
@@ -239,8 +239,8 @@ for probe in (socket.socket, lambda: socket.getaddrinfo('localhost', 80)):
 assert len(attempts) == 2
 attempts.clear()
 sys.path.insert(0, sys.argv[1])
-from trenton_offline_maps.trajectory import EcefTrajectory
-from trenton_offline_maps.visualize import RenderSpec, render_ecef
+from offline_earth.trajectory import EcefTrajectory
+from offline_earth.visualize import RenderSpec, render_ecef
 tr = EcefTrajectory.from_arrays('cold offline', [0, 2], [(7e6, 0, 0), (7e6, 100, 100)])
 out = Path(sys.argv[2])
 for backend, extension in [('map', 'png'), ('globe', 'png'),

@@ -10,12 +10,12 @@ import csv
 from examples.utilities import synthetic_orbit, stationary_ground
 from pathlib import Path
 
-from trenton_offline_maps import save_svg
-from trenton_offline_maps.canvas import canvas_globe
-from trenton_offline_maps.renderers.matplotlib import matplotlib_globe, matplotlib_world
-from trenton_offline_maps.renderers.plotly import plotly_globe
-from trenton_offline_maps.timeseries import matplotlib_ecef_timeseries
-from trenton_offline_maps.trajectory import EcefTrajectory, geodetic_to_ecef, write_trajectories
+from offline_earth import save_svg
+from offline_earth.canvas import canvas_globe
+from offline_earth.renderers.matplotlib import matplotlib_globe, matplotlib_world
+from offline_earth.renderers.plotly import plotly_globe
+from offline_earth.timeseries import matplotlib_ecef_timeseries
+from offline_earth.trajectory import EcefTrajectory, geodetic_to_ecef, write_trajectories
 
 def output_directory() -> Path:
     return Path(__file__).resolve().parents[1] / "artifacts" / "ecef"
@@ -68,7 +68,7 @@ def main() -> None:
     tw, th = 590, 365
     sheet = Image.new("RGB", (tw*3+56, th*2+154), "#091827")
     d=ImageDraw.Draw(sheet)
-    d.text((30,20), "TRENTON   /   TIMESTAMPED ECEF TRAJECTORIES", fill="#f0f7ff")
+    d.text((30,20), "OFFLINE EARTH   /   TIMESTAMPED ECEF TRAJECTORIES", fill="#f0f7ff")
     d.text((30,52), "One validated metre-and-second input model • Maps, globe, components-vs-time • No network", fill="#b2c7d7")
     for index, (label, filename) in enumerate(panels):
         image = Image.open(out / filename).convert("RGB")

@@ -1,7 +1,7 @@
 """Shared illustrative example data. Not propagation or production Earth models."""
 from math import cos, pi, radians, sin
-from trenton_offline_maps.geometry import LonLatDegrees
-from trenton_offline_maps.trajectory import EcefTrajectory, geodetic_to_ecef
+from offline_earth.geometry import LonLatDegrees
+from offline_earth.trajectory import EcefTrajectory, geodetic_to_ecef
 
 DEMO_EARTH_SPIN_RAD_S = 7.292115e-5
 DEMO_EARTH_RADIUS_M = 6_371_000.0

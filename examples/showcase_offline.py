@@ -2,11 +2,11 @@
 from pathlib import Path
 from examples.utilities import demo_ground_track
 
-from trenton_offline_maps.canvas import canvas_globe
+from offline_earth.canvas import canvas_globe
 
-from trenton_offline_maps import save_svg
-from trenton_offline_maps.renderers.matplotlib import matplotlib_globe, matplotlib_world
-from trenton_offline_maps.renderers.plotly import plotly_globe
+from offline_earth import save_svg
+from offline_earth.renderers.matplotlib import matplotlib_globe, matplotlib_world
+from offline_earth.renderers.plotly import plotly_globe
 
 def output_directory() -> Path:
     return Path(__file__).resolve().parents[1] / "artifacts" / "earth"
@@ -29,7 +29,7 @@ def main() -> None:
     thumb_width, thumb_height = 680, 430
     sheet = Image.new("RGB", (cols*thumb_width + 60, rows*(thumb_height+55) + 140), "#081522")
     draw = ImageDraw.Draw(sheet)
-    draw.text((36, 22), "TRENTON  /  OFFLINE EARTH VISUALIZATION", fill="#f0f4fa", stroke_width=0)
+    draw.text((36, 22), "OFFLINE EARTH  /  OFFLINE EARTH VISUALIZATION", fill="#f0f4fa", stroke_width=0)
     draw.text((36, 53), "Three rendering modes  •  Political borders, Blue Marble, and both  •  Local wheel assets", fill="#aac3d1")
     for idx, view in enumerate(("imagery", "political", "combined")):
         for row_idx, prefix in enumerate(("map", "globe")):

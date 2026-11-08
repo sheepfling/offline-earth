@@ -1,6 +1,6 @@
 from __future__ import annotations
 import socket
-from trenton_offline_maps import countries,svg_map
+from offline_earth import countries,svg_map
 
 def test_offline(monkeypatch):
     def blocked(*args,**kwargs): raise AssertionError('network access attempted')

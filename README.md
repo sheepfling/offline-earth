@@ -1,4 +1,4 @@
-# Trenton Offline Earth
+# Offline Earth
 
 Offline-only Python Earth visualization: Blue Marble, political boundaries, or both,
 with timestamped **ECEF trajectories in metres**.
@@ -14,10 +14,10 @@ Its HTML also includes a policy denying network connections and external resourc
 
 ```sh
 python -m pip install --no-index --only-binary=:all: --no-deps \
-  dist/trenton_offline_maps-0.3.1-py3-none-any.whl
-trenton-maps earth.html --renderer canvas --mode combined \
+  dist/offline_earth-0.3.1-py3-none-any.whl
+offline-earth earth.html --renderer canvas --mode combined \
   --ecef examples/data/sample_ecef.json --at-s 3600
-trenton-maps earth.svg --renderer svg --mode political \
+offline-earth earth.svg --renderer svg --mode political \
   --ecef examples/data/sample_ecef.json
 ```
 
@@ -32,8 +32,8 @@ from a checkout (see below); wheels are not committed or automatically released.
 ## Python API
 
 ```python
-from trenton_offline_maps.trajectory import EcefTrajectory
-from trenton_offline_maps.visualize import RenderSpec, render_ecef
+from offline_earth.trajectory import EcefTrajectory
+from offline_earth.visualize import RenderSpec, render_ecef
 
 track = EcefTrajectory.from_arrays(
     "Example", [0, 10, 20],
@@ -57,10 +57,10 @@ See [coordinate/time contract](docs/ECEF_CONTRACT.md).
 ```sh
 # ONLINE staging, on a machine matching the target Python/OS/architecture:
 python -m pip download --only-binary=:all: --dest wheelhouse \
-  './dist/trenton_offline_maps-0.3.1-py3-none-any.whl[plot,interactive]'
+  './dist/offline_earth-0.3.1-py3-none-any.whl[plot,interactive]'
 # OFFLINE installation after transferring the entire wheelhouse:
 python -m pip install --no-index --only-binary=:all: --find-links=wheelhouse \
-  'trenton-offline-maps[plot,interactive]==0.3.1'
+  'offline-earth[plot,interactive]==0.3.1'
 ```
 
 Wheel acquisition is separate from offline runtime. A successful wheel download for one

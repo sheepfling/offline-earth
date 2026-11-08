@@ -1,10 +1,10 @@
 import json
 
-from trenton_offline_maps.canvas import _script_json
+from offline_earth.canvas import _script_json
 import pytest
-from trenton_offline_maps.canvas import canvas_globe
-from trenton_offline_maps.trajectory import EcefTrajectory
-from trenton_offline_maps.visualize import RenderSpec, render_ecef
+from offline_earth.canvas import canvas_globe
+from offline_earth.trajectory import EcefTrajectory
+from offline_earth.visualize import RenderSpec, render_ecef
 
 @pytest.mark.parametrize('mode', ['imagery','political','combined'])
 def test_canvas_respects_initial_settings(tmp_path, mode):

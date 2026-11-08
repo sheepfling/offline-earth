@@ -10,7 +10,7 @@
 
 ## Input files
 
-`trenton-maps --ecef file.json` expects:
+`offline-earth --ecef file.json` expects:
 
 ```json
 {
@@ -44,8 +44,8 @@ One file may contain multiple trajectories. Repeated `--ecef` arguments merge tr
 ## Programmatic use
 
 ```python
-from trenton_offline_maps import EcefTrajectory
-from trenton_offline_maps.visualize import RenderSpec, render_ecef
+from offline_earth import EcefTrajectory
+from offline_earth.visualize import RenderSpec, render_ecef
 
 track = EcefTrajectory.from_arrays(
     name="Example spacecraft",
@@ -86,7 +86,7 @@ The Matplotlib and Canvas Earth image projection is intentionally spherical for 
 - Wheel contains the country vectors and Blue Marble JPEG as Python package data.
 - No network calls or automatic dataset downloads are built into the library.
 - Only Python wheels may be installed; the optional display packages must already exist in an **offline platform-specific wheelhouse** when installing air-gapped.
-- Core wheel can install with `pip install --no-index --only-binary=:all: --no-deps path/to/trenton_offline_maps-0.3.1-py3-none-any.whl`.
+- Core wheel can install with `pip install --no-index --only-binary=:all: --no-deps path/to/offline_earth-0.3.1-py3-none-any.whl`.
 - Tests block socket and DNS operations while actually rendering. A separate browser test intercepts and aborts every external request and checks Canvas mode, time scrubber, Play/Pause and dragging.
 
 ## Known gaps

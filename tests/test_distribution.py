@@ -19,8 +19,8 @@ def test_built_core_wheel_contract(tmp_path, pytestconfig):
         names = archive.namelist()
         members = [PurePosixPath(name) for name in names]
         assert all(not path.is_absolute() and '..' not in path.parts for path in members)
-        assert all(path.parts[0] == 'trenton_offline_maps' or
-                   (path.parts[0].startswith('trenton_offline_maps-') and
+        assert all(path.parts[0] == 'offline_earth' or
+                   (path.parts[0].startswith('offline_earth-') and
                     path.parts[0].endswith('.dist-info')) for path in members)
         assert not any(path.parts[0] in {'examples', 'tests', 'tools', 'artifacts'}
                        for path in members)
@@ -30,7 +30,7 @@ def test_built_core_wheel_contract(tmp_path, pytestconfig):
         # All requirements must be gated by an explicit extra, never core imports.
         assert all('; extra ==' in req for req in metadata.get_all('Requires-Dist', []))
         assert {'dev', 'examples', 'plot', 'interactive'} <= set(metadata.get_all('Provides-Extra', []))
-        prefix = 'trenton_offline_maps/data/'
+        prefix = 'offline_earth/data/'
         manifest = json.loads(archive.read(prefix + 'ASSETS.json'))
         for name, item in manifest['assets'].items():
             data = archive.read(prefix + name)
@@ -38,5 +38,5 @@ def test_built_core_wheel_contract(tmp_path, pytestconfig):
             assert hashlib.sha256(data).hexdigest() == item['sha256']
         assert any(name.endswith('BASEMAP_DATA_MIT.txt') for name in names)
         assert not any('BASEMAP_DATA_LGPL' in name or 'BASEMAP_DATA_GPL' in name for name in names)
-        assert 'trenton_offline_maps/templates/canvas.html' in names
+        assert 'offline_earth/templates/canvas.html' in names
         assert prefix + 'PROVENANCE.txt' in names

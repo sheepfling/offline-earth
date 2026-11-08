@@ -1,7 +1,7 @@
 """Network-blocked smoke tests for image generation and HTML assets."""
 from __future__ import annotations
 
-from trenton_offline_maps.canvas import canvas_globe
+from offline_earth.canvas import canvas_globe
 
 import socket
 from collections.abc import Iterable
@@ -10,10 +10,10 @@ from pathlib import Path
 
 import pytest
 
-from trenton_offline_maps.assets import blue_marble_bytes
-from trenton_offline_maps.renderers.matplotlib import matplotlib_globe, matplotlib_world
-from trenton_offline_maps.renderers.raster import orthographic_rgb
-from trenton_offline_maps.renderers.plotly import plotly_globe
+from offline_earth.assets import blue_marble_bytes
+from offline_earth.renderers.matplotlib import matplotlib_globe, matplotlib_world
+from offline_earth.renderers.raster import orthographic_rgb
+from offline_earth.renderers.plotly import plotly_globe
 
 
 class _Assets(HTMLParser):

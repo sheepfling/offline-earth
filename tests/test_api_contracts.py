@@ -1,8 +1,8 @@
 """Public units/path contracts and renderer-independent domain utilities."""
 
-from trenton_offline_maps.timeseries import matplotlib_ecef_timeseries
-from trenton_offline_maps.renderers.matplotlib import matplotlib_world, matplotlib_globe
-from trenton_offline_maps.renderers.plotly import plotly_globe
+from offline_earth.timeseries import matplotlib_ecef_timeseries
+from offline_earth.renderers.matplotlib import matplotlib_world, matplotlib_globe
+from offline_earth.renderers.plotly import plotly_globe
 import importlib
 import json
 import subprocess
@@ -12,18 +12,18 @@ from typing import get_type_hints
 
 import pytest
 
-from trenton_offline_maps import EcefTrajectory, save_svg
-from trenton_offline_maps.canvas import canvas_globe
-from trenton_offline_maps.constants import EARTH_RADIUS_M, WGS84_A_M, WGS84_B_M
-from trenton_offline_maps.geometry import (
+from offline_earth import EcefTrajectory, save_svg
+from offline_earth.canvas import canvas_globe
+from offline_earth.constants import EARTH_RADIUS_M, WGS84_A_M, WGS84_B_M
+from offline_earth.geometry import (
     Degrees, LonLatDegrees, TimeRangeSeconds, camera_basis, camera_to_world,
     split_antimeridian,
 )
-from trenton_offline_maps.paths import PathInput, input_path, output_path
-from trenton_offline_maps.trajectory import (
+from offline_earth.paths import PathInput, input_path, output_path
+from offline_earth.trajectory import (
     geodetic_to_ecef, project_orthographic_ecef, read_trajectories, write_trajectories,
 )
-from trenton_offline_maps.visualize import RenderSpec, render_ecef
+from offline_earth.visualize import RenderSpec, render_ecef
 
 
 class UserPath:
@@ -65,7 +65,7 @@ def test_path_contract_and_trajectory_io(tmp_path):
 
 
 def test_canvas_import_does_not_depend_on_optional_renderer():
-    code = "import sys; import trenton_offline_maps.canvas; assert 'trenton_offline_maps.earth' not in sys.modules; assert 'numpy' not in sys.modules"
+    code = "import sys; import offline_earth.canvas; assert 'offline_earth.earth' not in sys.modules; assert 'numpy' not in sys.modules"
     subprocess.run([sys.executable, '-c', code], check=True)
     assert get_type_hints(canvas_globe)['trajectories']  # No unresolved forward references.
 
@@ -102,24 +102,24 @@ def test_canvas_physical_constants_are_serialized_from_shared_source(tmp_path):
 
 
 def test_canvas_scene_can_use_an_alternate_presentation(tmp_path, monkeypatch):
-    from trenton_offline_maps.canvas_scene import load_canvas_scene
-    from trenton_offline_maps.canvas import render_canvas_html
+    from offline_earth.canvas_scene import load_canvas_scene
+    from offline_earth.canvas import render_canvas_html
     scene = load_canvas_scene(center_lon_deg=12, center_lat_deg=-20)
     def forbidden(*args, **kwargs):
         raise AssertionError('Presentation must not reload assets')
-    monkeypatch.setattr('trenton_offline_maps.canvas.files', forbidden)
+    monkeypatch.setattr('offline_earth.canvas.files', forbidden)
     html = render_canvas_html(scene, template='<script>const config=__INITIAL_CONFIG__;</script>')
     assert json.loads(html.split('=', 1)[1].split(';', 1)[0])['center_lon_deg'] == 12
 
 
 def test_camera_vector_return_contract():
-    from trenton_offline_maps.geometry import Vector3
+    from offline_earth.geometry import Vector3
     assert get_type_hints(camera_to_world)['return'] is Vector3
     assert isinstance(camera_to_world(0, 0, 1, camera_basis(0, 0)), Vector3)
 
 
 def test_blue_marble_metadata_and_country_ring_semantics():
-    from trenton_offline_maps.assets import BLUE_MARBLE, countries
+    from offline_earth.assets import BLUE_MARBLE, countries
     assert (BLUE_MARBLE.width_px, BLUE_MARBLE.height_px) == (5400, 2700)
     assert (BLUE_MARBLE.preview_width_px, BLUE_MARBLE.preview_height_px) == (1800, 900)
     assert BLUE_MARBLE.extent_deg == (-180, 180, -90, 90)
@@ -135,7 +135,7 @@ class BlockMatplotlib(MetaPathFinder):
         if fullname.split('.')[0] == 'matplotlib':
             raise AssertionError('Plotly backend must not import Matplotlib')
 sys.meta_path.insert(0, BlockMatplotlib())
-import trenton_offline_maps.renderers.plotly
+import offline_earth.renderers.plotly
 assert 'matplotlib' not in sys.modules
 """
     subprocess.run([sys.executable, '-c', code], check=True)

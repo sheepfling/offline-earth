@@ -26,7 +26,7 @@ def _script_json(value: object) -> str:
 def render_canvas_html(scene: CanvasScene, *, template: str | None = None) -> str:
     """Present an already-loaded scene; custom templates use the same data slots."""
     if template is None:
-        template = files('trenton_offline_maps').joinpath('templates/canvas.html').read_text(encoding='utf-8')
+        template = files('offline_earth').joinpath('templates/canvas.html').read_text(encoding='utf-8')
     config = dict(mode=scene.mode, at_s=scene.at_s, center_lon_deg=scene.center_lon_deg,
                   center_lat_deg=scene.center_lat_deg)
     constants = dict(radius_m=EARTH_RADIUS_M, a_m=WGS84_A_M, b_m=WGS84_B_M,

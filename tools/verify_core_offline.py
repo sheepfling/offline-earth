@@ -8,9 +8,9 @@ from importlib.resources import files
 def denied(*args, **kwargs):
     raise AssertionError('Network access attempted')
 socket.socket = socket.create_connection = socket.getaddrinfo = denied
-from trenton_offline_maps import countries
-from trenton_offline_maps.trajectory import EcefTrajectory
-from trenton_offline_maps.visualize import RenderSpec, render_ecef
+from offline_earth import countries
+from offline_earth.trajectory import EcefTrajectory
+from offline_earth.visualize import RenderSpec, render_ecef
 
 tr = EcefTrajectory.from_arrays('offline smoke', [0,10], [[7e6,0,0],[0,7e6,0]])
 with tempfile.TemporaryDirectory() as d:
@@ -19,7 +19,7 @@ with tempfile.TemporaryDirectory() as d:
             p = render_ecef([tr], Path(d)/f'{mode}-{backend}.{extension}',
                             spec=RenderSpec(backend=backend, mode=mode,at_s=5))
             assert p.stat().st_size > 1000
-    data = files('trenton_offline_maps').joinpath('data')
+    data = files('offline_earth').joinpath('data')
     manifest = json.loads(data.joinpath('ASSETS.json').read_text())
     import hashlib
     for name, entry in manifest['assets'].items():

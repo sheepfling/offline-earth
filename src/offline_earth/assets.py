@@ -44,7 +44,7 @@ class BlueMarbleAsset:
 
     def read_bytes(self) -> bytes:
         """Read the installed JPEG without fetching or caching external resources."""
-        return files('trenton_offline_maps').joinpath(self.resource_name).read_bytes()
+        return files('offline_earth').joinpath(self.resource_name).read_bytes()
 
 
 BLUE_MARBLE = BlueMarbleAsset()
@@ -52,7 +52,7 @@ BLUE_MARBLE = BlueMarbleAsset()
 
 def countries() -> list[Country]:
     """Read simplified Natural Earth country boundaries as closed lon/lat rings."""
-    resource = files('trenton_offline_maps').joinpath('data/countries.json')
+    resource = files('offline_earth').joinpath('data/countries.json')
     return cast(list[Country], json.loads(resource.read_text(encoding='utf-8')))
 
 

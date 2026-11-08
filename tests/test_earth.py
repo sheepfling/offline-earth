@@ -1,6 +1,6 @@
 from math import isclose
-from trenton_offline_maps.earth import sphere_xyz
-from trenton_offline_maps.constants import EARTH_RADIUS_KM
+from offline_earth.earth import sphere_xyz
+from offline_earth.constants import EARTH_RADIUS_KM
 from examples.utilities import demo_ground_track
 
 def test_equator():

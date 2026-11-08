@@ -1,8 +1,8 @@
 """Generate a self-contained globe using only the installed core package."""
 from pathlib import Path
 
-from trenton_offline_maps.trajectory import EcefTrajectory, geodetic_to_ecef
-from trenton_offline_maps.visualize import RenderSpec, render_ecef
+from offline_earth.trajectory import EcefTrajectory, geodetic_to_ecef
+from offline_earth.visualize import RenderSpec, render_ecef
 
 
 def main(output: str | Path = 'earth.html') -> Path:
