@@ -1,32 +1,17 @@
-# Validation of 0.3.1
+# Validation
 
-Run on Linux x86_64 / Python 3.12.14, 2026-11-07.
+Linux x86_64 / Python 3.12.14, 2026-11-08.
 
-- 34 pytest cases passed, including actual PNG/SVG/Canvas/Plotly generation while Python
-  socket and DNS operations were monkeypatched to fail. Includes eight new Canvas option tests.
-- Built `trenton_offline_maps-0.3.1-py3-none-any.whl` with `--no-index --no-build-isolation`.
-- Installed the wheel into a fresh virtual environment using `--no-index --no-deps
-  --only-binary=:all:`. From outside the checkout, the stdlib-only smoke script generated
-  six core outputs (three modes × SVG/Canvas), validated 177 countries and asset hashes,
-  with Python socket/DNS calls blocked.
-- Wheel includes both assets, manifest/provenance and upstream license texts.
-- Browser regression attempted, but **not run successfully**: Chromium cannot create its
-  process-singleton socket in this execution environment (`Operation not permitted`).
-  No security settings were changed. The archived v0.3.0 browser report is historical and
-  must not be represented as a successful browser check for v0.3.1.
-- Plotly browser/WebGL, other OS/Python combinations, and clean optional-extras wheelhouse
-  installation are not certified. No CI run is claimed.
+- 59 pytest cases pass, including rendering with Python socket/DNS operations
+  blocked, JSON metadata rejection and compatibility, and import-safe example helpers.
+- Wheel built with `--no-index --no-build-isolation`, then installed with
+  `--no-index --no-deps --only-binary=:all:` into an isolated environment.
+  The stdlib-only smoke test generates six SVG/Canvas outputs and verifies asset hashes.
+- Browser audit is **unverified**: Chromium cannot create its process-singleton
+  socket in this environment. No security settings were changed.
+- Plotly WebGL, other platforms and a clean optional-extras wheelhouse installation
+  are **unverified**. No CI pass is claimed.
 
-Dependencies were acquired online as wheels for the development environment. This does not
-invalidate offline runtime testing; it also does not constitute an offline wheelhouse delivery.
-Python monkeypatch tests do not prove absence of every conceivable native-library network call.
-Canvas's deny-network CSP is defense in depth, not a general OS network sandbox.
-
-## Ingestion regression update (2026-11-08)
-
-Explicitly conflicting JSON frame, spatial units and time units are now rejected
-at document and trajectory levels, including single-trajectory input. Missing
-metadata preserves the legacy ECEF/metres/seconds defaults. The full suite now
-has 55 passing cases, including metadata round-trip, 18 conflicting/null cases,
-and two legacy compatibility cases. Browser and optional wheelhouse claims
-remain unchanged and unverified.
+Development dependencies are acquired online as wheels, separately from offline
+runtime testing. Python socket monkeypatches and Canvas's network-denying CSP do
+not constitute an OS network sandbox or prove every native-library path offline.

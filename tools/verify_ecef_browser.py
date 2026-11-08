@@ -4,15 +4,17 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from playwright.sync_api import sync_playwright
 
-ROOT = Path(__file__).resolve().parents[1]
-HTML = ROOT / "review" / "ecef" / "interactive_ecef_canvas.html"
-SCREENSHOT = ROOT / "review" / "ecef" / "interactive_browser_preview.png"
-RESULT = ROOT / "review" / "ecef" / "browser_ecef_audit.json"
+def output_paths() -> tuple[Path, Path, Path]:
+    directory = Path(__file__).resolve().parents[1] / "artifacts" / "ecef"
+    return (directory / "interactive_ecef_canvas.html",
+            directory / "interactive_browser_preview.png",
+            directory / "browser_ecef_audit.json")
 
 
 def main() -> None:
+    from playwright.sync_api import sync_playwright
+    html_path, screenshot_path, result_path = output_paths()
     attempts: list[str] = []
     script_errors: list[str] = []
     with sync_playwright() as pw:
@@ -21,7 +23,7 @@ def main() -> None:
         page = browser.new_page(viewport={"width": 1180, "height": 950})
         page.route("**/*", lambda route: (attempts.append(route.request.url), route.abort()))
         page.on("pageerror", lambda err: script_errors.append(str(err)))
-        page.set_content(HTML.read_text(encoding="utf-8"), wait_until="domcontentloaded",
+        page.set_content(html_path.read_text(encoding="utf-8"), wait_until="domcontentloaded",
                          timeout=30000)
         page.wait_for_selector("canvas[data-ready='1']", timeout=30000)
         for value in ("political", "imagery", "combined"):
@@ -39,7 +41,7 @@ def main() -> None:
         page.locator("canvas").drag_to(page.locator("canvas"),
                                        source_position={"x": 210, "y": 230},
                                        target_position={"x": 270, "y": 260})
-        page.screenshot(path=str(SCREENSHOT), full_page=True)
+        page.screenshot(path=str(screenshot_path), full_page=True)
         assert not attempts, f"Browser network attempted: {attempts}"
         assert not script_errors, f"JS exceptions: {script_errors}"
         assert playback_time > 3600, "Play did not advance time"
@@ -52,7 +54,7 @@ def main() -> None:
                   "scope": "Canvas only; Plotly WebGL not browser certified",
                   "load_mechanism": "page.set_content (local file navigation restricted)"}
         browser.close()
-    RESULT.write_text(json.dumps(result, indent=2), encoding="utf-8")
+    result_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
     print(json.dumps(result, indent=2))
 
 if __name__ == "__main__":

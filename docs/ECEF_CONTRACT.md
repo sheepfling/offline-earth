@@ -88,7 +88,7 @@ The Matplotlib and Canvas Earth image projection is intentionally spherical for 
 - Only Python wheels may be installed; the optional display packages must already exist in an **offline platform-specific wheelhouse** when installing air-gapped.
 - Core wheel can install with `pip install --no-index --only-binary=:all: --no-deps path/to/trenton_offline_maps-0.3.1-py3-none-any.whl`.
 - Tests block socket and DNS operations while actually rendering. A separate browser test intercepts and aborts every external request and checks Canvas mode, time scrubber, Play/Pause and dragging.
-- See [current validation](VALIDATION.md) for tested environment and checks. Older browser reports describe v0.3.0 only.
+- See [current validation](VALIDATION.md) for tested environment and checks.
 
 ## Known gaps
 

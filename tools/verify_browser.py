@@ -7,14 +7,16 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from playwright.sync_api import sync_playwright
 
-ROOT = Path(__file__).resolve().parents[1]
-PAGE = ROOT / "review" / "interactive_canvas_no_webgl.html"
-SCREENSHOT = ROOT / "review" / "interactive_canvas_browser.png"
+def output_paths() -> tuple[Path, Path]:
+    directory = Path(__file__).resolve().parents[1] / "artifacts" / "earth"
+    return (directory / "interactive_canvas_no_webgl.html",
+            directory / "interactive_canvas_browser.png")
 
 
 def main() -> None:
+    from playwright.sync_api import sync_playwright
+    html_path, screenshot_path = output_paths()
     attempts: list[str] = []
     errors: list[str] = []
     with sync_playwright() as runner:
@@ -25,9 +27,9 @@ def main() -> None:
         page.on("pageerror", lambda err: errors.append(str(err)))
         # file:// navigation is forbidden by this runner's sandbox. Inject HTML bytes
         # directly: the same DOM/scripts execute, with the network blocked.
-        page.set_content(PAGE.read_text(encoding="utf-8"), wait_until="domcontentloaded", timeout=25000)
+        page.set_content(html_path.read_text(encoding="utf-8"), wait_until="domcontentloaded", timeout=25000)
         page.wait_for_selector("canvas[data-ready='1']", timeout=25000)
-        page.screenshot(path=str(SCREENSHOT), full_page=True)
+        page.screenshot(path=str(screenshot_path), full_page=True)
         assert page.locator("canvas").get_attribute("data-mode") == "combined"
         for value in ("political", "imagery", "combined"):
             page.get_by_role("button", name={"political":"Political", "imagery":"Blue Marble",
@@ -40,7 +42,7 @@ def main() -> None:
         browser.close()
     print(json.dumps({"browser": "Chromium", "dom_rendered": True, "all_modes_tested": True,
                       "drag_tested": True, "attempted_network_requests": attempts,
-                      "script_errors": errors, "screenshot": str(SCREENSHOT)}, indent=2))
+                      "script_errors": errors, "screenshot": str(screenshot_path)}, indent=2))
 
 
 if __name__ == "__main__":

@@ -1,8 +1,7 @@
 # Trenton Offline Earth
 
 Offline-only Python Earth visualization: Blue Marble, political boundaries, or both,
-with timestamped **ECEF trajectories in metres**. This repository continues the supplied
-`trenton_offline_earth_ecef_v030_compact(1).zip`; it does not replace that work with a new stack.
+with timestamped **ECEF trajectories in metres**.
 
 ## Recommended path
 
@@ -17,9 +16,9 @@ Its HTML also includes a policy denying network connections and external resourc
 python -m pip install --no-index --only-binary=:all: --no-deps \
   dist/trenton_offline_maps-0.3.1-py3-none-any.whl
 trenton-maps earth.html --renderer canvas --mode combined \
-  --ecef review/ecef/sample_ecef.json --at-s 3600
+  --ecef examples/data/sample_ecef.json --at-s 3600
 trenton-maps earth.svg --renderer svg --mode political \
-  --ecef review/ecef/sample_ecef.json
+  --ecef examples/data/sample_ecef.json
 ```
 
 Open `earth.html` directly in a local browser. No server is needed. Build the wheel first
@@ -66,8 +65,22 @@ versions. Browser binaries are separately installed desktop software, not Python
 
 ## Build and test
 
-Stage build/test wheels while online, then install them into a development environment.
-Build itself does not need network access when `setuptools` and `wheel` are installed:
+Install normal development extras while online (includes build, test, example and
+browser-audit Python dependencies):
+
+```sh
+python -m pip install --only-binary=:all: -e '.[dev]'
+python -m pytest -q
+```
+
+For examples alone, use `pip install --only-binary=:all: -e '.[examples]'`.
+The editable project is local source; all third-party dependencies must be wheels.
+Generate galleries with `python examples/showcase_offline.py` or
+`python examples/showcase_ecef.py`; outputs go under ignored `artifacts/`.
+Sample CSV/JSON inputs live in `examples/data/`. Neither importing examples nor
+importing browser-audit helpers creates files or launches a browser.
+
+Build itself does not need network access once the development tools are installed:
 
 ```sh
 python -m pip wheel --no-deps --no-build-isolation --no-index . -w dist
@@ -77,10 +90,11 @@ python -m venv /tmp/earth-clean
 /tmp/earth-clean/bin/python tools/verify_core_offline.py
 ```
 
-The full tests require `pytest` and the optional plotting packages. The installed-wheel
+The `[dev]` extra covers the full test suite. The installed-wheel
 smoke script needs only stdlib and blocks Python socket/DNS calls while rendering all three
-modes with both core renderers. Optional `tools/verify_ecef_browser.py` needs Playwright and
-a preinstalled Chromium; it intercepts external page requests. See [current validation](docs/VALIDATION.md).
+modes with both core renderers. After generating the ECEF gallery, `python tools/verify_ecef_browser.py`
+uses Playwright from `[dev]` plus a preinstalled Chromium; it intercepts external
+page requests. The browser binary is not downloaded automatically. See [current validation](docs/VALIDATION.md).
 
 ## Assets, inspection, licenses
 
@@ -108,9 +122,3 @@ Canvas uses fixed view extent; `extent_earth_radii` currently applies to the Mat
 The Plotly initial display choices are more limited than Canvas; its imagery layer may include
 borders. No promise that arbitrary future optional-dependency releases remain offline-safe.
 
-## History
-
-0.3.1 imports the supplied 0.3.0 implementation, fixes ignored Canvas mode/camera/time options,
-adds a network-denying HTML policy, asset integrity manifest, packaged license notices, regression
-tests and a clean installed-wheel offline check. `docs/legacy/` holds old archive evidence;
-legacy review PNGs are illustrative outputs, not fresh validation of this revision.
