@@ -122,8 +122,9 @@ function xyzVisible(s,b) {
  const cc=wa*(x*x+y*y)+wb*z*z-1;
  const det=bb*bb-4*aa*cc;
  let visible=true;
- if(det>=0){const root=Math.sqrt(det);const lo=(-bb-root)/(2*aa),hi=(-bb+root)/(2*aa);
-   visible=!(hi>1/Rm&&(lo>1/Rm||cc< -1e-12));}
+ if(det>=0){const root=Math.sqrt(det),hi=(-bb+root)/(2*aa);
+   // Ignore near-origin self-hits, but still count a later Earth exit.
+   visible=!(hi>1/Rm);}
  return {u,v,visible};
 }
 function ecefAt(samples,t){
