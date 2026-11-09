@@ -1,7 +1,7 @@
 """Validated Earth-fixed trajectories and local-file adapters.
 
 No propagation, ECI conversion, time-scale inference, or network I/O occurs here.
-ECEF uses right-handed metres: +X at (0°,0°), +Y at (90°E,0°), +Z north.
+ECEF uses right-handed meters: +X at (0°,0°), +Y at (90°E,0°), +Z north.
 Samples' t_s values are seconds from an explicitly caller-defined epoch.
 """
 from __future__ import annotations
@@ -87,7 +87,7 @@ class EcefTrajectory:
         for t, xyz in zip(time_s, xyz_m):
             xyz = tuple(xyz)
             if len(xyz) != 3:
-                raise ValueError("Each ECEF position must contain x,y,z in metres")
+                raise ValueError("Each ECEF position must contain x,y,z in meters")
             samples.append(EcefSample(float(t), EcefPosition(*[float(v) for v in xyz])))
         return cls(name=name, samples=tuple(samples), color=color, epoch_utc=epoch_utc)
 

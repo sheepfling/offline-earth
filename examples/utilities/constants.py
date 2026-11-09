@@ -1,4 +1,7 @@
-"""Approximate physical constants for illustrative examples, in SI units."""
+"""Shared Earth constants, re-exported for examples in meters/radians/seconds."""
+from typing import Final
 
-DEMO_EARTH_SPIN_RAD_S = 7.292115e-5
-DEMO_EARTH_RADIUS_M = 6_371_000.0
+from offline_earth import constants
+
+EARTH_SPIN_RAD_S: Final[float] = constants.EARTH_SPIN_RAD_S
+EARTH_RADIUS_M: Final[float] = constants.EARTH_RADIUS_M

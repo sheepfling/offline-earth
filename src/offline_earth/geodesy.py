@@ -1,6 +1,6 @@
 """Dependency-free WGS84 coordinates, transforms, and horizon projection.
 
-ECEF uses right-handed metres: +X at (0°,0°), +Y at (90°E,0°), +Z north.
+ECEF uses right-handed meters: +X at (0°,0°), +Y at (90°E,0°), +Z north.
 This module performs coordinate math only, with no trajectory or file I/O.
 """
 from __future__ import annotations
@@ -14,7 +14,7 @@ from .geometry import Degrees, OrthographicPoint, camera_basis
 
 @dataclass(frozen=True, slots=True)
 class EcefPosition:
-    """Finite Earth-centred, Earth-fixed Cartesian coordinates in metres."""
+    """Finite Earth-centred, Earth-fixed Cartesian coordinates in meters."""
 
     x_m: float
     y_m: float
@@ -22,7 +22,7 @@ class EcefPosition:
 
     def __post_init__(self) -> None:
         if not all(isfinite(v) for v in (self.x_m, self.y_m, self.z_m)):
-            raise ValueError("ECEF components must be finite metres")
+            raise ValueError("ECEF components must be finite meters")
 
     @property
     def radius_m(self) -> float:
@@ -31,7 +31,7 @@ class EcefPosition:
 
 @dataclass(frozen=True, slots=True)
 class GeodeticPosition:
-    """WGS84 longitude/latitude degrees and ellipsoidal height in metres."""
+    """WGS84 longitude/latitude degrees and ellipsoidal height in meters."""
 
     lon_deg: float
     lat_deg: float
@@ -45,7 +45,7 @@ class GeodeticPosition:
 
 
 def geodetic_to_ecef(lon_deg: float, lat_deg: float, height_m: float = 0.0) -> EcefPosition:
-    """WGS84 longitude/latitude/ellipsoidal-height to ECEF (metres)."""
+    """WGS84 longitude/latitude/ellipsoidal-height to ECEF (meters)."""
     p = GeodeticPosition(lon_deg, lat_deg, height_m)
     lon_rad, lat_rad = radians(p.lon_deg), radians(p.lat_deg)
     sl, cl = sin(lat_rad), cos(lat_rad)
@@ -64,7 +64,7 @@ def ecef_to_geodetic(position: EcefPosition) -> GeodeticPosition:
             raise ValueError("Geodetic position undefined at Earth centre")
         return GeodeticPosition(0.0, 90.0 if z > 0 else -90.0, abs(z) - WGS84_B_M)
     lon_deg = degrees(atan2(y, x))
-    # Iteratively solve latitude; heights can be thousands of kilometres.
+    # Iteratively solve latitude; heights can be thousands of kilometers.
     lat_rad = atan2(z, p * (1 - WGS84_E2))
     for _ in range(16):
         sl = sin(lat_rad)

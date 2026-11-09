@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from .paths import PathInput, output_path
 from .figures import PostPlot, finish_figure, validate_post_plot
-from .constants import METRES_PER_KM
+from .constants import KM_PER_METERS
 from typing import Any, Mapping, Sequence
 from .trajectory import EcefTrajectory
 
@@ -25,7 +25,7 @@ def matplotlib_ecef_timeseries(
     validate_post_plot(post_plot, post_plot_kwargs)
     if not trajectories:
         raise ValueError("At least one trajectory required")
-    factor = {"m": 1.0, "km": METRES_PER_KM}.get(unit)
+    factor = {"m": 1.0, "km": KM_PER_METERS}.get(unit)
     if factor is None:
         raise ValueError("unit must be m or km")
     fig, axes = plt.subplots(3, 1, figsize=(12, 8.2), sharex=True, dpi=145)
@@ -35,7 +35,7 @@ def matplotlib_ecef_timeseries(
             axis.set_facecolor("#0d2134")
             for tr in trajectories:
                 axis.plot([s.t_s for s in tr.samples],
-                          [getattr(s.position, key) / factor for s in tr.samples],
+                          [getattr(s.position, key) * factor for s in tr.samples],
                           label=tr.name, color=tr.color, linewidth=1.7)
             axis.set_ylabel(f"ECEF {axis_name} ({unit})", color="#d9e6f0")
             axis.tick_params(colors="#bdcedb")

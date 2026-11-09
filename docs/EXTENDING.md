@@ -8,7 +8,7 @@ generators and gallery scripts stay outside the wheel.
 
 - `trajectory.py`: validated timestamped tracks and CSV/JSON input/output.
 - `geodesy.py`: WGS84 coordinate types, conversions and horizon visibility.
-- `constants.py`: shared physical and display defaults.
+- `constants.py`: shared physical and display defaults, annotated `Final`.
 - `geometry.py`: semantic coordinate tuples, camera vectors, map seams and the
   `ViewMode` Literal. `VIEW_MODES` is derived from that Literal for validation.
 - `assets.py`: local asset access and metadata, including named geographic extent.
@@ -17,13 +17,34 @@ generators and gallery scripts stay outside the wheel.
   it safely, then present it as a self-contained page.
 - `renderers/`: optional Matplotlib, Plotly, image decoding and raster projection.
 - `figures.py`: common callback and ownership rules, without plotting imports.
-- `examples/utilities/constants.py`: approximate physical values for examples.
+- `examples/utilities/constants.py`: re-exports the shared Earth constants.
 - `examples/utilities/trajectories.py`: synthetic generators and sampling defaults.
 
 For a new backend, add its explicit module, extend the `Backend` Literal and
 dispatcher in `visualize.py`, and cover its imports and actual output in tests.
 Do not import optional plotting packages from core modules. A new CLI renderer
 also needs an entry in `cli.py`; its `interactive` option names the Plotly backend.
+
+## Rendering choices
+
+`renderers/blue_marble.py` names the Plotly texture budgets: 180 columns, 91 rows
+and up to 128 palette colors. Roughly two-degree sampling keeps the globe near
+16,000 vertices. The reduced palette keeps the self-contained HTML smaller.
+These are adjustable quality/size choices, not NASA source dimensions or a
+geodetic precision limit. `indexed_texture(width_px=..., height_px=...,
+palette_colors=...)` can be used to compare budgets. Plotly derives its surface
+grid and color limits from the returned arrays rather than repeating the numbers.
+The packaged 5400×2700 NASA image remains unchanged.
+
+Matplotlib's semantic color constants live at the top of
+`renderers/matplotlib.py`; each names a visual role such as an axis label or
+country border. Caller-supplied trajectory colors remain independent.
+
+Use `KM_PER_METERS` multiplication for meter-to-kilometer conversion. Physical
+Earth values are shared constants; only synthetic sampling choices retain the
+`DEMO_` prefix. `sample_ecef_trajectories()` returns a fresh, editable list of
+validated trajectories. `Final` annotations document constants for type checkers;
+they do not prevent assignment at runtime.
 
 ## Customize the HTML
 
@@ -64,7 +85,7 @@ The data slots are:
 - `__BORDERS_JSON__`: countries → rings → `[longitude_deg, latitude_deg]` pairs.
 - `__TRACK_JSON__`: an array of ground-track `[longitude_deg, latitude_deg]` pairs.
 - `__ECEF_JSON__`: an array of objects with `name`, `color`, and `samples`.
-  Each sample is `[elapsed_seconds, x_metres, y_metres, z_metres]`.
+  Each sample is `[elapsed_seconds, x_meters, y_meters, z_meters]`.
 - `__BLUE_MARBLE_BASE64__`: JPEG bytes encoded as base64 for the existing data URL.
 
 JSON slots are serialized for inline script values, not HTML attributes or

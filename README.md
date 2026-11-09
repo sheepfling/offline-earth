@@ -1,7 +1,7 @@
 # Offline Earth
 
 Offline-only Python Earth visualization: Blue Marble, political boundaries, or both,
-with timestamped **ECEF trajectories in metres**.
+with timestamped **ECEF trajectories in meters**.
 
 ## Recommended path
 

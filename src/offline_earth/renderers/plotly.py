@@ -1,19 +1,40 @@
 """Optional Plotly globe; independent of Matplotlib."""
 from __future__ import annotations
 
-from math import pi
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, NamedTuple, Sequence
 
 import numpy as np
 import plotly.graph_objects as go
 
 from ..assets import countries
-from ..constants import METRES_PER_KM, WGS84_A_M, WGS84_E2
+from ..constants import KM_PER_METERS
+from ..geodesy import geodetic_to_ecef
 from ..geometry import GroundTrack, split_antimeridian
 from ..paths import PathInput, output_path
 from ..figures import PostPlot, finish_figure, validate_post_plot
-from ..trajectory import EcefTrajectory, geodetic_to_ecef
+from ..trajectory import EcefTrajectory
 from .blue_marble import indexed_texture
+
+
+class SurfaceCoordinatesKm(NamedTuple):
+    """ECEF component grids, in kilometers, aligned to texture rows/columns."""
+
+    x_km: np.ndarray
+    y_km: np.ndarray
+    z_km: np.ndarray
+
+
+def _surface_coordinates_km(shape: tuple[int, int]) -> SurfaceCoordinatesKm:
+    """Sample the shared WGS84 conversion on a north-to-south texture grid."""
+    latitudes_deg = np.linspace(90.0, -90.0, shape[0])
+    longitudes_deg = np.linspace(-180.0, 180.0, shape[1])
+    xyz_m = np.empty((*shape, 3))
+    for row, lat_deg in enumerate(latitudes_deg):
+        for column, lon_deg in enumerate(longitudes_deg):
+            ecef = geodetic_to_ecef(lon_deg, lat_deg)
+            xyz_m[row, column] = (ecef.x_m, ecef.y_m, ecef.z_m)
+    xyz_km = xyz_m * KM_PER_METERS
+    return SurfaceCoordinatesKm(xyz_km[:, :, 0], xyz_km[:, :, 1], xyz_km[:, :, 2])
 
 
 def plotly_globe(
@@ -37,16 +58,10 @@ def plotly_globe(
 
     validate_post_plot(post_plot, post_plot_kwargs)
     ids, scale = indexed_texture()
-    lat_rad = np.linspace(pi/2, -pi/2, 91)
-    lon_rad = np.linspace(-pi, pi, 180)
-    lon_grid_rad, lat_grid_rad = np.meshgrid(lon_rad, lat_rad)
-    n = WGS84_A_M / np.sqrt(1 - WGS84_E2 * np.sin(lat_grid_rad)**2)
-    x = n * np.cos(lat_grid_rad)*np.cos(lon_grid_rad) / METRES_PER_KM
-    y = n * np.cos(lat_grid_rad)*np.sin(lon_grid_rad) / METRES_PER_KM
-    z = n * (1-WGS84_E2) * np.sin(lat_grid_rad) / METRES_PER_KM
+    x, y, z = _surface_coordinates_km(ids.shape)
     fig = go.Figure()
     fig.add_trace(go.Surface(x=x, y=y, z=z, surfacecolor=ids.astype(float),
-                             cmin=0, cmax=127, colorscale=scale, showscale=False,
+                             cmin=0, cmax=len(scale) - 1, colorscale=scale, showscale=False,
                              hoverinfo="skip", lighting=dict(ambient=.8, diffuse=.7), name="Blue Marble", visible=include_imagery))
     fig.add_trace(go.Surface(x=x, y=y, z=z, surfacecolor=np.zeros_like(x),
                              cmin=0, cmax=1, colorscale=[[0, "#1a527b"], [1, "#1a527b"]],
@@ -57,8 +72,8 @@ def plotly_globe(
         for ring in c["rings"]:
             for lon_deg, lat_deg in ring:
                 ecef = geodetic_to_ecef(lon_deg, lat_deg, 7_000.0)
-                bx.append(ecef.x_m / METRES_PER_KM); by.append(ecef.y_m / METRES_PER_KM);
-                bz.append(ecef.z_m / METRES_PER_KM)
+                bx.append(ecef.x_m * KM_PER_METERS); by.append(ecef.y_m * KM_PER_METERS);
+                bz.append(ecef.z_m * KM_PER_METERS)
             bx.append(None); by.append(None); bz.append(None)
     fig.add_trace(go.Scatter3d(x=bx, y=by, z=bz, mode="lines", name="Political borders",
                                line=dict(color="#fce3a3", width=2), hoverinfo="skip", visible=True))
@@ -67,16 +82,16 @@ def plotly_globe(
         for segment in split_antimeridian(track):
             for lon_deg, lat_deg in segment:
                 ecef = geodetic_to_ecef(lon_deg, lat_deg, 95_000.0)
-                xx.append(ecef.x_m / METRES_PER_KM); yy.append(ecef.y_m / METRES_PER_KM);
-                zz.append(ecef.z_m / METRES_PER_KM)
+                xx.append(ecef.x_m * KM_PER_METERS); yy.append(ecef.y_m * KM_PER_METERS);
+                zz.append(ecef.z_m * KM_PER_METERS)
             xx.append(None); yy.append(None); zz.append(None)
         fig.add_trace(go.Scatter3d(x=xx, y=yy, z=zz, mode="lines", name="Illustrative track",
                                    line=dict(color="#ffab58", width=6), hoverinfo="skip"))
-    # True 3D ECEF paths in kilometres (NOT draped ground tracks).
+    # True 3D ECEF paths in kilometers (NOT draped ground tracks).
     for tr in trajectories:
-        xx = [s.position.x_m / METRES_PER_KM for s in tr.samples]
-        yy = [s.position.y_m / METRES_PER_KM for s in tr.samples]
-        zz = [s.position.z_m / METRES_PER_KM for s in tr.samples]
+        xx = [s.position.x_m * KM_PER_METERS for s in tr.samples]
+        yy = [s.position.y_m * KM_PER_METERS for s in tr.samples]
+        zz = [s.position.z_m * KM_PER_METERS for s in tr.samples]
         fig.add_trace(go.Scatter3d(x=xx, y=yy, z=zz, mode="lines", name=tr.name,
                                    line=dict(color=tr.color, width=5),
                                    text=[f"{s.t_s:.1f} s" for s in tr.samples],
@@ -85,7 +100,7 @@ def plotly_globe(
             tr.at(at_s) if tr.time_range[0] <= at_s <= tr.time_range[1] else None)
         if marker is not None:
             fig.add_trace(go.Scatter3d(
-                x=[marker.x_m / METRES_PER_KM], y=[marker.y_m / METRES_PER_KM], z=[marker.z_m / METRES_PER_KM],
+                x=[marker.x_m * KM_PER_METERS], y=[marker.y_m * KM_PER_METERS], z=[marker.z_m * KM_PER_METERS],
                 mode="markers+text", name=f"{tr.name} position", text=[tr.name],
                 textposition="top center", marker=dict(color=tr.color, size=5),
             ))

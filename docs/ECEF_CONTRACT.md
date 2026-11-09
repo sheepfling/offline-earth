@@ -2,7 +2,7 @@
 
 ## Coordinate and time contract
 
-- **Position:** WGS84 Earth-Centered, Earth-Fixed Cartesian coordinates in **metres**, not ECI, TEME, GCRS, or kilometres. Right-handed: X through the equator at Greenwich, Y through 90° east, Z toward the north pole.
+- **Position:** WGS84 Earth-Centered, Earth-Fixed Cartesian coordinates in **meters**, not ECI, TEME, GCRS, or kilometers. Right-handed: X through the equator at Greenwich, Y through 90° east, Z toward the north pole.
 - **Time:** strictly increasing finite floating-point seconds `time_s` relative to a *caller-defined* origin. Optional `epoch_utc` records the origin as an ISO-8601 datetime with UTC offset. If multiple tracks provide an epoch, they must all provide the same instant. No UTC/UT1, leap-second, Earth rotation, or inertial-frame conversions are silently performed.
 - **Geometry:** WGS84 `a=6378137 m`, `1/f=298.257223563`. Convert ground projection with `ecef_to_geodetic`. The time-series plots preserve raw x/y/z, without geodetic conversion.
 - **Interpolation:** piecewise linear between adjacent ECEF samples at requested `at_s`. This is an interpolation method, **not** an orbital propagator. Extrapolation is rejected. A sparse sampled trajectory is drawn as straight chords; high-curvature paths require adequate sampling.
@@ -100,8 +100,10 @@ At both the document wrapper and individual trajectory level, explicitly supplie
 `"seconds"`, respectively. Conflicting values, alternate spellings/case and null
 values raise `ValueError` before positions are interpreted. No conversion is
 performed. Legacy JSON omitting any or all metadata remains supported and uses
-ECEF metres and elapsed seconds, as also expressed by `ecef_m` and `time_s`.
+ECEF meters and elapsed seconds, as also expressed by `ecef_m` and `time_s`.
 This applies to wrapped trajectory collections and single-trajectory JSON.
+The stored `"metres"` token is retained for existing files; Python conversion
+constants and prose use the `METERS`/meters spelling.
 
 ## Public paths and coordinate types
 
