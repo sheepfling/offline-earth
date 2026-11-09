@@ -1,4 +1,5 @@
 """Generate a self-contained globe using only the installed core package."""
+import argparse
 from pathlib import Path
 
 from offline_earth.trajectory import EcefTrajectory, geodetic_to_ecef
@@ -15,5 +16,13 @@ def main(output: str | Path = 'earth.html') -> Path:
     return render_ecef([track], output, spec=RenderSpec(backend='canvas', at_s=60))
 
 
+def cli(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output", "-o", type=Path, default=Path("earth.html"),
+                        help="HTML output path (default: earth.html)")
+    args = parser.parse_args(argv)
+    print(f"Open {main(args.output)} in a local browser.")
+
+
 if __name__ == '__main__':
-    print(f'Open {main()} in a local browser.')
+    cli()

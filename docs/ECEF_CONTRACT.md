@@ -107,6 +107,11 @@ This applies to wrapped trajectory collections and single-trajectory JSON.
 
 All public file inputs/outputs accept `PathInput` (`str | os.PathLike[str]`).
 Shared I/O helpers normalize to `pathlib.Path`; writers create parent directories.
+`EcefTrajectory.from_arrays` accepts iterables, including one-shot generators for
+times and coordinate rows. Their lengths must match; no values are silently
+discarded. `read_trajectories` returns a mutable list so callers can append,
+remove or reorder tracks. Each validated trajectory retains an immutable tuple
+of samples; construct a new trajectory to change its positions or times.
 `center_lon_deg` and `center_lat_deg` always mean **degrees**, not radians, in Python and
 CLI APIs (`--center-lon-deg`, `--center-lat-deg`). Their `Degrees` annotations carry
 that unit. Internal trigonometry uses explicitly named `_rad` variables.
@@ -116,3 +121,5 @@ Ground-track points are `LonLatDegrees(lon_deg, lat_deg)`; time ranges expose
 These named tuples preserve unpacking/indexing and ordinary tuple input compatibility.
 Assets, physical/display constants, and camera/seam geometry are independent shared
 modules. Renderers consume them; Canvas does not import the optional Earth renderer.
+WGS84 coordinate types, conversions and horizon projection live in `geodesy`.
+Existing coordinate imports from `trajectory` and the package root remain available.

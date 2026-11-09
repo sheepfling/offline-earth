@@ -1,29 +1,49 @@
 {
   "assets": {
     "blue_marble.jpg": {
-      "sha256": "10f5389b365d7ece89f68a73ce5653fb5692145fde181fc64596d0d87cb89bb8",
-      "size_bytes": 2311548,
-      "source": "basemap-data 2.0.0 bmng.jpg; NASA Blue Marble Next Generation",
-      "license_notes": "NASA imagery; distributed JPEG covered by basemap-data MIT notice (licenses/BASEMAP_DATA_MIT.txt), not its GSHHG LGPL data license",
+      "sha256": "f55226d46d27e05511f2118dc6aa24f5dbf9b6b2cddc87cc6e0e7dd067c00b11",
+      "size_bytes": 1617810,
+      "source": "NASA Earth Observatory, Blue Marble: Next Generation, July 2004 base map",
+      "source_url": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-base/july/world.200407.3x5400x2700.jpg",
+      "source_index_url": "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-map/",
+      "reference_url": "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/",
+      "technical_report_url": "https://assets.science.nasa.gov/content/dam/science/esd/eo/content-feature/bluemarble/bmng.pdf",
+      "acquisition": "Downloaded directly from NASA; bundled unchanged without resizing or re-encoding.",
+      "imagery_month": "2004-07",
+      "product": "Monthly Terra MODIS composite, base map without added topographic or bathymetric shading.",
+      "credit": "NASA Earth Observatory",
+      "producer": "Reto Stöckli, NASA Earth Observatory, NASA Goddard Space Flight Center",
+      "license_notes": "NASA imagery is generally not subject to copyright in the United States. Use under NASA Media Usage Guidelines, acknowledge NASA Earth Observatory, and do not imply NASA endorsement. Third-party copyrighted content is excluded from the general permission; no such marking was found for this base map.",
+      "license_source": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "projection": "Plate Carrée (equirectangular), WGS84",
       "width_px": 5400,
       "height_px": 2700,
       "extent_deg": [
-        -180,
-        180,
-        -90,
-        90
+        -180.0,
+        180.0,
+        -90.0,
+        90.0
       ],
       "origin": "upper",
-      "license_source": "https://pypi.org/project/basemap-data/2.0.0/#description",
-      "source_wheel_sha256": "56103a0dfa411c77bec1888b232bb70e7ceb089f83679531fbb4bb6efafa5035",
-      "source_wheel_member": "mpl_toolkits/basemap_data/bmng.jpg"
+      "limitations": [
+        "Monthly composite, not a single photograph or current imagery.",
+        "Deep oceans use uniform color; cloud/snow processing and coastal transition artifacts may be present.",
+        "Visualization imagery, not terrain or a survey product."
+      ]
     },
     "countries.json": {
       "sha256": "b08d5ff4d829782d69faf0367438732a7013bf41503453a0aa3d83ca639b92a0",
       "size_bytes": 179327,
       "source": "Natural Earth low-resolution countries via GeoPandas legacy dataset",
-      "license_notes": "Public domain"
+      "license_notes": "Public domain",
+      "acquisition": "Inherited from the supplied v0.3.0 archive; geometry was repackaged as compact JSON.",
+      "upstream_version": "Not recorded in the input archive; no exact Natural Earth release is claimed.",
+      "license_source": "https://www.naturalearthdata.com/about/terms-of-use/",
+      "limitations": [
+        "Simplified country boundaries are not authoritative legal border determinations.",
+        "No admin-1/admin-2 detail; unsuitable for cadastral, legal or high-resolution boundary use."
+      ]
     }
   },
-  "note": "Inherited resources from supplied v0.3.0 archive; see PROVENANCE.txt. No automatic asset updates."
+  "note": "Canonical provenance, attribution, reuse notes and checksums for bundled assets. Source URLs are documentation only; runtime never fetches or updates assets."
 }

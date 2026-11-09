@@ -15,9 +15,9 @@ dev = ["offline-earth[examples]", "pytest>=7", "setuptools>=68", "wheel", "playw
 [project.scripts]
 offline-earth = "offline_earth.cli:main"
 [tool.setuptools]
-license-files = ["licenses/*.txt", "licenses/README.md"]
+license-files = ["licenses/README.md"]
 
 [tool.setuptools.package-data]
-offline_earth = ["data/*.json", "data/*.jpg", "data/*.txt", "templates/*.html"]
+offline_earth = ["data/*.json", "data/*.jpg", "templates/*.html"]
 [tool.setuptools.packages.find]
 where = ["src"]

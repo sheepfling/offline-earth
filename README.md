@@ -25,6 +25,7 @@ For a small Python example, run `python examples/quickstart.py` after installing
 only the core wheel. It creates `earth.html` with an illustrative ECEF path and
 time controls; no `[examples]` extra or plotting dependencies are needed. The
 larger gallery scripts are opt-in and are not included in the installed wheel.
+Use `python examples/quickstart.py --output results/earth.html` to choose its path.
 
 Open `earth.html` directly in a local browser. No server is needed. Build the wheel first
 from a checkout (see below); wheels are not committed or automatically released.
@@ -77,6 +78,8 @@ Canvas data loading is separate from presentation: `load_canvas_scene` in
 `canvas_scene` returns local scene data; `render_canvas_html` in `canvas` consumes it.
 The default presentation is the inspectable wheel resource `templates/canvas.html`.
 A caller may supply an alternate template without reloading assets.
+See [extending the package](docs/EXTENDING.md) for the source map, template slots,
+and post-plot callbacks that retain, save, close or collect figures.
 
 ## Build and test
 
@@ -92,7 +95,17 @@ For examples alone, use `pip install --only-binary=:all: -e '.[examples]'`.
 The editable project is local source; all third-party dependencies must be wheels.
 Generate galleries with `python -m examples.showcase_offline` or
 `python -m examples.showcase_ecef`; outputs go under ignored `artifacts/`.
-Sample CSV/JSON inputs live in `examples/data/`. Neither importing examples nor
+Both accept `--output-dir PATH`. Sample CSV/JSON inputs live in `examples/data/`.
+The checked-in ECEF JSON is a small, coarse example. Generate a more densely sampled
+version with the core package alone:
+
+```sh
+python -m examples.generate_samples --output artifacts/ecef/sample_ecef.json --sample-count 151
+```
+
+The generator defaults to 151 samples per LEO track over 0–6000 seconds; the
+small checked-in JSON uses 13. These are illustrative paths, not orbit propagation.
+Neither importing examples nor
 importing browser-audit helpers creates files or launches a browser.
 
 Build itself does not need network access once the development tools are installed:
@@ -110,21 +123,25 @@ smoke script needs only stdlib and blocks Python socket/DNS calls while renderin
 modes with both core renderers. After generating the ECEF gallery, `python tools/verify_ecef_browser.py`
 uses Playwright from `[dev]` plus a preinstalled Chromium; it intercepts external
 page requests. The browser binary is not downloaded automatically.
+For headless Matplotlib runs, set `MPLBACKEND=Agg`; the library respects the caller's
+backend rather than changing it during import.
 
 ## Assets, inspection, licenses
 
-- `data/blue_marble.jpg`: an ordinary viewable JPEG, inherited from basemap-data 2.0.0's
-  NASA Blue Marble Next Generation image. This is human-viewable imagery, **not text data**.
+- `data/blue_marble.jpg`: an ordinary viewable JPEG downloaded directly from NASA's
+  Blue Marble Next Generation base-map collection, July 2004. The official
+  5400×2700 image is bundled unchanged. This is human-viewable imagery, **not text data**.
 - `data/countries.json`: human-readable JSON geometry, 177 simplified Natural Earth countries.
-- `data/ASSETS.json`: names, sizes, hashes and source/license notes.
-- `data/PROVENANCE.txt`: inherited provenance. Exact upstream country-data version is not
-  recorded in the input archive; do not claim independently verified provenance beyond it.
-- `licenses/`: the applicable upstream basemap-data MIT notice, also included in the wheel.
+- `data/ASSETS.json`: the single provenance record, with direct source URLs, sizes,
+  hashes, image metadata, credits, reuse terms and limitations. The exact upstream
+  country-data version was not recorded in the input archive and remains unknown.
+- `licenses/README.md`: points to the bundled asset record; also included in the wheel.
 
 Inspect wheels with any ZIP reader. No opaque asset-fetching library is required.
-NASA imagery attribution: NASA Earth Observatory (Reto Stöckli / Robert Simmon).
-Natural Earth is public domain. basemap-data 2.0.0 assigns its JPEG images the MIT license;
-its GSHHG LGPL/GPL notices do not apply to the resources bundled here. Asset notices are not a blanket license for this project's code. **No project-wide code
+NASA imagery credit: NASA Earth Observatory (Reto Stöckli). NASA imagery is generally
+not subject to US copyright; follow its [Media Usage Guidelines](https://www.nasa.gov/nasa-brand-center/images-and-media/),
+including acknowledgment and no implied endorsement. Natural Earth is public domain.
+Asset terms are not a blanket license for this project's code. **No project-wide code
 license has been chosen yet.** Review provenance/licensing before public distribution.
 
 ## Limitations

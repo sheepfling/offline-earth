@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from importlib.resources import files
 import json
-from typing import Annotated, Literal, TypeAlias, TypedDict, cast
+from typing import Annotated, Literal, NamedTuple, TypeAlias, TypedDict, cast
 
 # Keep the JSON-compatible list representation while documenting coordinate order.
 LongitudeLatitudeDegrees: TypeAlias = Annotated[list[float], "[longitude, latitude] in degrees"]
@@ -24,6 +24,15 @@ class Country(TypedDict):
     rings: list[CountryBoundaryRing]
 
 
+class GeographicExtentDegrees(NamedTuple):
+    """Equirectangular coverage, ordered west/east/south/north in degrees."""
+
+    west_deg: float
+    east_deg: float
+    south_deg: float
+    north_deg: float
+
+
 @dataclass(frozen=True)
 class BlueMarbleAsset:
     """Bundled equirectangular JPEG and its geographic/raster conventions.
@@ -39,7 +48,7 @@ class BlueMarbleAsset:
     height_px: int = 2700
     preview_width_px: int = 1800
     preview_height_px: int = 900
-    extent_deg: tuple[float, float, float, float] = (-180.0, 180.0, -90.0, 90.0)
+    extent_deg: GeographicExtentDegrees = GeographicExtentDegrees(-180.0, 180.0, -90.0, 90.0)
     origin: Literal['upper'] = 'upper'
 
     def read_bytes(self) -> bytes:

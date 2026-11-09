@@ -5,6 +5,7 @@ import argparse
 from pathlib import Path
 from collections.abc import Sequence
 from .paths import output_path
+from .geometry import VIEW_MODES
 from .constants import DEFAULT_CENTER_LON_DEG, DEFAULT_CENTER_LAT_DEG, DEFAULT_EXTENT_EARTH_RADII
 
 from .trajectory import EcefTrajectory, read_trajectories
@@ -15,7 +16,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Offline political/Blue Marble Earth + ECEF trajectories")
     parser.add_argument("output", nargs="?", default="world.svg", help="Destination output file")
     parser.add_argument("--renderer", choices=("svg", "map", "globe", "interactive", "canvas", "timeseries"), default="svg")
-    parser.add_argument("--mode", choices=("imagery", "political", "combined"), default="combined")
+    parser.add_argument("--mode", choices=VIEW_MODES, default="combined")
     parser.add_argument("--ecef", type=Path, action="append", default=[], metavar="CSV_OR_JSON",
                         help="Local ECEF trajectory file (repeatable); never interpreted as ECI")
     parser.add_argument("--at-s", type=float, default=None, help="Snapshot marker time, seconds from epoch")

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from math import pi
-from typing import Sequence
+from typing import Any, Mapping, Sequence
 
 import numpy as np
 import plotly.graph_objects as go
@@ -11,6 +11,7 @@ from ..assets import countries
 from ..constants import METRES_PER_KM, WGS84_A_M, WGS84_E2
 from ..geometry import GroundTrack, split_antimeridian
 from ..paths import PathInput, output_path
+from ..figures import PostPlot, finish_figure, validate_post_plot
 from ..trajectory import EcefTrajectory, geodetic_to_ecef
 from .blue_marble import indexed_texture
 
@@ -22,13 +23,19 @@ def plotly_globe(
     include_imagery: bool = True,
     trajectories: Sequence[EcefTrajectory] = (),
     at_s: float | None = None,
-) -> None:
+    post_plot: PostPlot | None = None,
+    post_plot_kwargs: Mapping[str, Any] | None = None,
+) -> go.Figure | None:
     """Self-contained interactive 3D globe with three toggleable visualization modes.
 
     Uses Pillow color quantization to encode the local RGB raster as a Plotly
     surface colorscale. The HTML embeds all JS and all geometry; no CDN.
+    Default: save without opening a browser, return None. A custom
+    ``post_plot(fig, path=..., **post_plot_kwargs)`` replaces saving and returns
+    a retained figure (or None to discard it). No figures are stored globally.
     """
 
+    validate_post_plot(post_plot, post_plot_kwargs)
     ids, scale = indexed_texture()
     lat_rad = np.linspace(pi/2, -pi/2, 91)
     lon_rad = np.linspace(-pi, pi, 180)
@@ -95,4 +102,8 @@ def plotly_globe(
                       updatemenus=[dict(type="buttons", direction="right", buttons=buttons,
                                        x=.03, y=1.08, xanchor="left", bgcolor="#29445e", font=dict(color="#fff"))],
                       margin=dict(l=5, r=5, b=5, t=95))
-    fig.write_html(str(output_path(path)), include_plotlyjs=True, full_html=True, auto_open=False)
+    target = output_path(path)
+    return finish_figure(
+        fig, target, post_plot=post_plot, post_plot_kwargs=post_plot_kwargs,
+        save=lambda: fig.write_html(str(target), include_plotlyjs=True, full_html=True, auto_open=False),
+    )

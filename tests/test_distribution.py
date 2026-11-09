@@ -36,7 +36,11 @@ def test_built_core_wheel_contract(tmp_path, pytestconfig):
             data = archive.read(prefix + name)
             assert len(data) == item['size_bytes']
             assert hashlib.sha256(data).hexdigest() == item['sha256']
-        assert any(name.endswith('BASEMAP_DATA_MIT.txt') for name in names)
-        assert not any('BASEMAP_DATA_LGPL' in name or 'BASEMAP_DATA_GPL' in name for name in names)
+        assert not any('BASEMAP_DATA_' in name for name in names)
+        assert any(name.endswith('/licenses/README.md') for name in names)
         assert 'offline_earth/templates/canvas.html' in names
-        assert prefix + 'PROVENANCE.txt' in names
+        assert prefix + 'PROVENANCE.txt' not in names
+        image = manifest['assets']['blue_marble.jpg']
+        assert image['source_url'].startswith('https://assets.science.nasa.gov/')
+        assert image['credit'] == 'NASA Earth Observatory'
+        assert image['imagery_month'] == '2004-07'

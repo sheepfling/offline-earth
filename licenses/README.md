@@ -1,16 +1,11 @@
 # Bundled resource notices
 
-The Blue Marble JPEG was inherited from the basemap-data 2.0.0 distribution.
-That release explicitly distinguishes its GSHHG-derived data (LGPL-3.0-or-later)
-from its other files, including JPEG images (MIT). This project bundles the
-JPEG, not the GSHHG coastlines, masks, rivers or political boundaries.
-BASEMAP_DATA_MIT.txt preserves the applicable upstream notice. The unrelated
-GPL/LGPL texts are therefore not included.
+The canonical asset provenance, credits, reuse conditions and checksums are in
+`offline_earth/data/ASSETS.json` inside the wheel, or
+`src/offline_earth/data/ASSETS.json` in this checkout.
 
-Sources checked:
-- https://pypi.org/project/basemap-data/2.0.0/#description
-- https://github.com/matplotlib/basemap/blob/v2.0.0/data/basemap_data/LICENSE.mit
+The Blue Marble JPEG is sourced directly from NASA. Country geometry comes from
+Natural Earth via the inherited input archive. Read each asset's record before
+redistributing it, including its source links and limitations.
 
-The country geometry instead comes from Natural Earth via the GeoPandas legacy
-dataset and is public domain. NASA imagery credit, asset history, and geographic
-limitations remain in the bundled data/PROVENANCE.txt.
+These asset terms do not select a license for this project's code.

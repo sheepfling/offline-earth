@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from math import isfinite
 from typing import Sequence
 from .assets import CountryBoundaryRing, countries, blue_marble_bytes
-from .geometry import Degrees, GroundTrack, ViewMode
+from .geometry import Degrees, GroundTrack, ViewMode, VIEW_MODES
 from .trajectory import EcefTrajectory
 from .constants import DEFAULT_CENTER_LON_DEG, DEFAULT_CENTER_LAT_DEG
 
@@ -27,7 +27,7 @@ def load_canvas_scene(*, track: GroundTrack | None = None,
                       center_lon_deg: Degrees = DEFAULT_CENTER_LON_DEG,
                       center_lat_deg: Degrees = DEFAULT_CENTER_LAT_DEG) -> CanvasScene:
     """Load bundled assets and validate camera/time choices, without writing HTML."""
-    if mode not in ('imagery', 'political', 'combined'):
+    if mode not in VIEW_MODES:
         raise ValueError('Unrecognized Earth display mode')
     if not all(isfinite(v) for v in (center_lon_deg, center_lat_deg)) or not -90 <= center_lat_deg <= 90:
         raise ValueError('Invalid camera coordinates')

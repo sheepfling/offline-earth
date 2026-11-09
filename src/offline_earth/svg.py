@@ -1,22 +1,23 @@
 """Dependency-free SVG renderer."""
 from __future__ import annotations
 import base64
-from typing import Any, Literal, Sequence
-from .geometry import GroundTrack, LonLatInput
+from typing import Any, Sequence
+from .geometry import GroundTrack, LonLatInput, ViewMode, VIEW_MODES, split_antimeridian
 from .assets import countries, blue_marble_bytes
 from .paths import PathInput, output_path
-from .trajectory import EcefTrajectory, ecef_to_geodetic, split_antimeridian
+from .trajectory import EcefTrajectory
+from .geodesy import ecef_to_geodetic
 
 def svg_map(*, width: int = 1200, height: int = 620,
             tracks: Sequence[GroundTrack] | None = None,
             stations: Sequence[LonLatInput] | None = None,
             trajectories: Sequence[EcefTrajectory] | None = None,
             at_s: float | None = None,
-            mode: Literal["political", "imagery", "combined"] = "political") -> str:
+            mode: ViewMode = "political") -> str:
     """Render self-contained SVG; no web, plotting package, or external asset needed."""
     def xy(lon_deg: float,lat_deg: float) -> tuple[float,float]:
         return ((lon_deg+180)*width/360, (90-lat_deg)*height/180)
-    if mode not in ("political", "imagery", "combined"):
+    if mode not in VIEW_MODES:
         raise ValueError("Unknown Earth display mode")
     parts=[f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
            '<rect width="100%" height="100%" fill="#102a43"/>']

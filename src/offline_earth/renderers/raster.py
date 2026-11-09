@@ -8,10 +8,14 @@ from PIL import Image, ImageDraw
 
 from ..assets import BLUE_MARBLE, countries
 from ..constants import DEFAULT_CENTER_LON_DEG, DEFAULT_CENTER_LAT_DEG
-from ..geometry import Degrees, GroundTrack, Vector3, ViewMode, camera_basis
+from ..geometry import Degrees, GroundTrack, Vector3, ViewMode, VIEW_MODES, camera_basis
 from .blue_marble import texture_rgb
 
+# Renderer framing in Earth radii: a 6% margin around the unit globe.
+# These settings describe the output canvas, not the Blue Marble source image.
 ORTHOGRAPHIC_EXTENT = 1.06
+MIN_OUTPUT_SIZE_PX = 64
+MAX_OUTPUT_SIZE_PX = 4096
 
 
 def _political_mask() -> np.ndarray:
@@ -32,10 +36,14 @@ def orthographic_rgb(
     center_lat_deg: Degrees = DEFAULT_CENTER_LAT_DEG,
     size: int = 800,
 ) -> np.ndarray:
-    """Project local imagery to RGBA. center_lon_deg and center_lat_deg are degrees."""
-    if mode not in ("imagery", "political", "combined"):
+    """Project local imagery to a square RGBA output with ``size`` pixels per side.
+
+    Camera coordinates are degrees. The 64..4096 output-resolution budget
+    bounds allocation/work for every mode, independently of source imagery.
+    """
+    if mode not in VIEW_MODES:
         raise ValueError(mode)
-    if size < 64 or size > 4096:
+    if size < MIN_OUTPUT_SIZE_PX or size > MAX_OUTPUT_SIZE_PX:
         raise ValueError("size must be in 64..4096")
     u, v = np.meshgrid(np.linspace(-ORTHOGRAPHIC_EXTENT, ORTHOGRAPHIC_EXTENT, size), np.linspace(ORTHOGRAPHIC_EXTENT, -ORTHOGRAPHIC_EXTENT, size))
     valid = u*u + v*v <= 1

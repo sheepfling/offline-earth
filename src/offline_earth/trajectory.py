@@ -1,4 +1,4 @@
-"""Validated Earth-fixed trajectories and WGS84 geodetic transforms.
+"""Validated Earth-fixed trajectories and local-file adapters.
 
 No propagation, ECI conversion, time-scale inference, or network I/O occurs here.
 ECEF uses right-handed metres: +X at (0°,0°), +Y at (90°E,0°), +Z north.
@@ -12,12 +12,13 @@ import re
 from bisect import bisect_right
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from math import atan2, cos, degrees, hypot, isfinite, radians, sin, sqrt
-from typing import Iterable, Sequence, TypedDict
+from math import isfinite
+from typing import Iterable, TypedDict
 
-from .constants import WGS84_A_M, WGS84_F, WGS84_E2, WGS84_B_M, EARTH_RADIUS_M
-from .geometry import (Degrees, LonLatDegrees, TimeRangeSeconds, OrthographicPoint,
-                       camera_basis, split_antimeridian)
+# Re-export the original coordinate API for existing callers.
+from .geodesy import (EcefPosition, GeodeticPosition, ecef_to_geodetic,
+                      geodetic_to_ecef, project_orthographic_ecef)
+from .geometry import LonLatDegrees, TimeRangeSeconds, split_antimeridian
 from .paths import PathInput, input_path, output_path
 
 
@@ -34,21 +35,6 @@ class TrajectoryRecord(TypedDict):
 
 
 @dataclass(frozen=True, slots=True)
-class EcefPosition:
-    x_m: float
-    y_m: float
-    z_m: float
-
-    def __post_init__(self) -> None:
-        if not all(isfinite(v) for v in (self.x_m, self.y_m, self.z_m)):
-            raise ValueError("ECEF components must be finite metres")
-
-    @property
-    def radius_m(self) -> float:
-        return sqrt(self.x_m**2 + self.y_m**2 + self.z_m**2)
-
-
-@dataclass(frozen=True, slots=True)
 class EcefSample:
     t_s: float
     position: EcefPosition
@@ -61,56 +47,9 @@ class EcefSample:
 
 
 @dataclass(frozen=True, slots=True)
-class GeodeticPosition:
-    lon_deg: float
-    lat_deg: float
-    height_m: float
-
-    def __post_init__(self) -> None:
-        if not all(isfinite(v) for v in (self.lon_deg, self.lat_deg, self.height_m)):
-            raise ValueError("Geodetic coordinates must be finite")
-        if not -90 <= self.lat_deg <= 90:
-            raise ValueError("Latitude must lie between -90 and +90 degrees")
-
-
-def geodetic_to_ecef(lon_deg: float, lat_deg: float, height_m: float = 0.0) -> EcefPosition:
-    """WGS84 longitude/latitude/ellipsoidal-height to ECEF (metres)."""
-    p = GeodeticPosition(lon_deg, lat_deg, height_m)
-    lon_rad, lat_rad = radians(p.lon_deg), radians(p.lat_deg)
-    sl, cl = sin(lat_rad), cos(lat_rad)
-    n = WGS84_A_M / sqrt(1 - WGS84_E2 * sl * sl)
-    return EcefPosition((n + height_m) * cl * cos(lon_rad),
-                        (n + height_m) * cl * sin(lon_rad),
-                        (n * (1 - WGS84_E2) + height_m) * sl)
-
-
-def ecef_to_geodetic(position: EcefPosition) -> GeodeticPosition:
-    """WGS84 inverse, robust near poles; undefined at Earth's centre."""
-    x, y, z = position.x_m, position.y_m, position.z_m
-    p = hypot(x, y)
-    if p < 1e-8:
-        if abs(z) < 1e-8:
-            raise ValueError("Geodetic position undefined at Earth centre")
-        return GeodeticPosition(0.0, 90.0 if z > 0 else -90.0, abs(z) - WGS84_B_M)
-    lon_deg = degrees(atan2(y, x))
-    # Iteratively solve latitude; heights can be thousands of kilometres.
-    lat_rad = atan2(z, p * (1 - WGS84_E2))
-    for _ in range(16):
-        sl = sin(lat_rad)
-        n = WGS84_A_M / sqrt(1 - WGS84_E2 * sl * sl)
-        next_lat_rad = atan2(z + WGS84_E2 * n * sl, p)
-        if abs(next_lat_rad - lat_rad) < 1e-15:
-            lat_rad = next_lat_rad
-            break
-        lat_rad = next_lat_rad
-    sl, cl = sin(lat_rad), cos(lat_rad)
-    n = WGS84_A_M / sqrt(1 - WGS84_E2 * sl * sl)
-    h = p / cl - n if abs(cl) > 1e-8 else abs(z) / abs(sl) - n * (1 - WGS84_E2)
-    return GeodeticPosition(lon_deg, degrees(lat_rad), h)
-
-
-@dataclass(frozen=True, slots=True)
 class EcefTrajectory:
+    """Immutable validated samples, strictly ordered by caller-relative seconds."""
+
     name: str
     samples: tuple[EcefSample, ...]
     color: str = "#ffbd69"
@@ -119,6 +58,11 @@ class EcefTrajectory:
     def __post_init__(self) -> None:
         if not self.name.strip():
             raise ValueError("Trajectory requires a nonempty name")
+        # Copy caller-owned collections before validating so later edits cannot
+        # invalidate the trajectory's ordering or nonempty invariant.
+        object.__setattr__(self, "samples", tuple(self.samples))
+        if not all(isinstance(sample, EcefSample) for sample in self.samples):
+            raise TypeError("samples must contain EcefSample objects")
         if not self.samples:
             raise ValueError("Trajectory must have at least one sample")
         if any(b.t_s <= a.t_s for a, b in zip(self.samples, self.samples[1:])):
@@ -132,13 +76,16 @@ class EcefTrajectory:
 
     @classmethod
     def from_arrays(
-        cls, name: str, time_s: Sequence[float], xyz_m: Sequence[Sequence[float]],
+        cls, name: str, time_s: Iterable[float], xyz_m: Iterable[Iterable[float]],
         *, color: str = "#ffbd69", epoch_utc: datetime | None = None,
     ) -> EcefTrajectory:
+        """Copy iterable times/XYZ rows, rejecting unequal lengths and bad rows."""
+        time_s, xyz_m = tuple(time_s), tuple(xyz_m)
         if len(time_s) != len(xyz_m):
             raise ValueError("time and position array lengths must match")
         samples: list[EcefSample] = []
         for t, xyz in zip(time_s, xyz_m):
+            xyz = tuple(xyz)
             if len(xyz) != 3:
                 raise ValueError("Each ECEF position must contain x,y,z in metres")
             samples.append(EcefSample(float(t), EcefPosition(*[float(v) for v in xyz])))
@@ -202,8 +149,10 @@ def _validate_json_metadata(value: object) -> None:
                              "Coordinate and time conversion is not performed.")
 
 
-def read_trajectories(path: PathInput) -> tuple[EcefTrajectory, ...]:
+def read_trajectories(path: PathInput) -> list[EcefTrajectory]:
     """Read UTF-8 .json or long-form .csv (name,time_s,x_m,y_m,z_m).
+
+    Return an editable list of immutable, validated trajectories.
 
     Coordinates are already ECEF, not ECI; times are seconds relative to
     the supplied epoch (when given), not Unix timestamps by default.
@@ -225,7 +174,7 @@ def read_trajectories(path: PathInput) -> tuple[EcefTrajectory, ...]:
                 color=str(entry.get("color", "#ffbd69")),
                 epoch_utc=_parse_epoch(entry.get("epoch_utc")),
             ))
-        return tuple(result)
+        return result
     if path.suffix.lower() == ".csv":
         grouped: dict[str, list[tuple[float, list[float]]]] = {}
         with path.open(newline="", encoding="utf-8") as stream:
@@ -233,9 +182,9 @@ def read_trajectories(path: PathInput) -> tuple[EcefTrajectory, ...]:
                 name = row.get("name") or path.stem
                 grouped.setdefault(name, []).append((float(row["time_s"]),
                     [float(row[k]) for k in ("x_m", "y_m", "z_m")]))
-        return tuple(EcefTrajectory.from_arrays(name,
+        return [EcefTrajectory.from_arrays(name,
                      [t for t, _ in rows], [xyz for _, xyz in rows])
-                     for name, rows in grouped.items())
+                     for name, rows in grouped.items()]
     raise ValueError("Expected .json or .csv input")
 
 
@@ -244,32 +193,3 @@ def write_trajectories(path: PathInput, tracks: Iterable[EcefTrajectory]) -> Non
     payload = {"frame": "ECEF", "units": "metres", "time_units": "seconds",
                "trajectories": [track.to_dict() for track in tracks]}
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-
-
-def project_orthographic_ecef(
-    position: EcefPosition, center_lon_deg: Degrees, center_lat_deg: Degrees,
-    *, display_radius_m: float = EARTH_RADIUS_M,
-) -> OrthographicPoint:
-    """Orthographic globe coordinates (Earth radii) and WGS84 horizon visibility.
-
-    center_lon_deg and center_lat_deg are degrees. The camera is at infinity along that direction.
-    Visibility uses an ellipsoid ray intersection, preserving altitude: a far-side
-    satellite may be visible beyond the limb while a surface point is occluded.
-    """
-    forward, east, north = camera_basis(center_lon_deg, center_lat_deg)
-    p = (position.x_m, position.y_m, position.z_m)
-    u = sum(a*b for a, b in zip(p, east)) / display_radius_m
-    v = sum(a*b for a, b in zip(p, north)) / display_radius_m
-    # Ray from position toward camera; any positive intersection blocks sight.
-    weights = (1 / WGS84_A_M**2, 1 / WGS84_A_M**2, 1 / WGS84_B_M**2)
-    aa = sum(w * f*f for w, f in zip(weights, forward))
-    bb = 2 * sum(w * x*f for w, x, f in zip(weights, p, forward))
-    cc = sum(w * x*x for w, x in zip(weights, p)) - 1
-    determinant = bb*bb - 4*aa*cc
-    visible = True
-    if determinant >= 0:
-        sqrt_d = sqrt(determinant)
-        lo = (-bb - sqrt_d) / (2*aa)
-        hi = (-bb + sqrt_d) / (2*aa)
-        visible = not (hi > 1.0 and (lo > 1.0 or cc < -1e-12))
-    return OrthographicPoint(u, v, visible)

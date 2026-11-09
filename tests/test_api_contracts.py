@@ -57,7 +57,7 @@ def test_path_contract_and_trajectory_io(tmp_path):
     tr = EcefTrajectory.from_arrays('demo', [0], [[7e6,0,0]])
     path = UserPath(tmp_path / 'nested' / 'tracks.json')
     write_trajectories(path, [tr])
-    assert read_trajectories(path) == (tr,)
+    assert read_trajectories(path) == [tr]
     assert isinstance(input_path(path), Path)
     assert isinstance(output_path(path), Path)
     assert get_type_hints(canvas_globe)['path'] == PathInput

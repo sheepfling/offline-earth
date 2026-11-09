@@ -1,8 +1,10 @@
 """Dependency-free semantic coordinates and shared camera geometry."""
 from math import cos, sin, radians
-from typing import Annotated, Literal, NamedTuple, Sequence, TypeAlias
+from typing import Annotated, Literal, NamedTuple, Sequence, TypeAlias, get_args
 
 ViewMode: TypeAlias = Literal["imagery", "political", "combined"]
+# Runtime validation and UI choices share the declared type domain.
+VIEW_MODES = get_args(ViewMode)
 Degrees: TypeAlias = Annotated[float, "degrees"]
 
 

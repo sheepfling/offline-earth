@@ -82,14 +82,14 @@ def test_local_json_and_csv(tmp_path: Path) -> None:
     tr = EcefTrajectory.from_arrays("Demo", [0, 1], [(2, 3, 4), (3, 4, 5)])
     j = tmp_path / "local.json"
     write_trajectories(j, [tr])
-    assert read_trajectories(j) == (tr,)
+    assert read_trajectories(j) == [tr]
     c = tmp_path / "local.csv"
     with c.open("w", encoding="utf-8", newline="") as stream:
         writer=csv.writer(stream)
         writer.writerow(["name", "time_s", "x_m", "y_m", "z_m"])
         writer.writerow(["Demo",0,2,3,4])
         writer.writerow(["Demo",1,3,4,5])
-    assert read_trajectories(c) == (tr,)
+    assert read_trajectories(c) == [tr]
 
 
 def test_all_outputs_offline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -179,7 +179,7 @@ def test_json_metadata_round_trip(tmp_path: Path) -> None:
     raw = json.loads(path.read_text())
     assert {key: raw[key] for key in ("frame", "units", "time_units")} == {
         "frame": "ECEF", "units": "metres", "time_units": "seconds"}
-    assert read_trajectories(path) == (tr,)
+    assert read_trajectories(path) == [tr]
 
 
 @pytest.mark.parametrize("wrapped", [False, True])
@@ -188,7 +188,7 @@ def test_json_legacy_missing_metadata(tmp_path: Path, wrapped: bool) -> None:
     entry = tr.to_dict()
     path = tmp_path / "legacy.json"
     path.write_text(json.dumps({"trajectories": [entry]} if wrapped else entry))
-    assert read_trajectories(path) == (tr,)
+    assert read_trajectories(path) == [tr]
 
 
 @pytest.mark.parametrize('lon,lat,expected', [
