@@ -87,6 +87,7 @@ def test_untagged_checkout_is_development_version(repository, tmp_path):
     version = Version(metadata['Version'])
     assert version.base_version == '0.1'
     assert version.dev == 1
+    assert version < Version('0.1.0')
     assert version.local.startswith('g')
     assert 'setuptools-scm' not in '\n'.join(
         req for req in metadata.get_all('Requires-Dist', []) if 'extra ==' not in req)
@@ -95,13 +96,15 @@ def test_untagged_checkout_is_development_version(repository, tmp_path):
 def test_tag_commit_and_dirty_versions(repository, tmp_path):
     source, git = repository
     # Tags exist only in this disposable fixture, never in the project repository.
-    run([git, 'tag', 'v1.2.3'], source)
-    assert wheel_metadata(build(source, 'wheel', tmp_path / 'tagged'))['Version'] == '1.2.3'
+    run([git, 'tag', 'v0.1.0'], source)
+    wheel = build(source, 'wheel', tmp_path / 'tagged')
+    assert wheel.name == 'offline_earth-0.1.0-py3-none-any.whl'
+    assert wheel_metadata(wheel)['Version'] == '0.1.0'
     with (source / 'README.md').open('a', encoding='utf-8') as stream:
         stream.write('\nTest commit after the tag.\n')
     run([git, 'commit', '-am', 'Next test commit'], source)
     version = Version(wheel_metadata(build(source, 'wheel', tmp_path / 'next'))['Version'])
-    assert version.public == '1.2.4.dev1'
+    assert version.public == '0.1.1.dev1'
     assert version.local.startswith('g') and '.d' not in version.local
     with (source / 'README.md').open('a', encoding='utf-8') as stream:
         stream.write('\nUncommitted test change.\n')
@@ -114,7 +117,7 @@ def test_tag_commit_and_dirty_versions(repository, tmp_path):
 def test_sdist_preserves_version_without_git(repository, tmp_path, tagged):
     source, git = repository
     if tagged:
-        run([git, 'tag', 'v1.2.3'], source)
+        run([git, 'tag', 'v0.1.0'], source)
     sdist = build(source, 'sdist', tmp_path / 'sdist')
     unpacked = tmp_path / 'unpacked'
     with tarfile.open(sdist) as archive:
@@ -125,7 +128,7 @@ def test_sdist_preserves_version_without_git(repository, tmp_path, tagged):
     extracted, = unpacked.iterdir()
     assert not (extracted / '.git').exists()
     version = email.message_from_bytes((extracted / 'PKG-INFO').read_bytes())['Version']
-    assert version == '1.2.3' if tagged else Version(version).is_devrelease
+    assert version == '0.1.0' if tagged else Version(version).is_devrelease
     # An empty PATH prevents Git discovery, proving that sdist metadata suffices.
     wheel = build(extracted, 'wheel', tmp_path / 'rebuilt', env=clean_env(PATH=''))
     assert wheel_metadata(wheel)['Version'] == version
