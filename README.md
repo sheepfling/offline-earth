@@ -96,6 +96,13 @@ The editable project is local source; all third-party dependencies must be wheel
 Generate galleries with `python -m examples.showcase_offline` or
 `python -m examples.showcase_ecef`; outputs go under ignored `artifacts/`.
 Both accept `--output-dir PATH`. Sample CSV/JSON inputs live in `examples/data/`.
+
+For a plain catalog of all renderers and their actual options, run
+`python -m examples.final_showcase`. It writes ignored `artifacts/final-showcase/`
+and `artifacts/final-showcase.zip`. Extract the ZIP and open `index.html` for the
+mode examples, time/camera differences, inputs, CLI flags and direct Python options.
+The template is `examples/templates/showcase.html`; the catalog stays outside the wheel.
+
 The checked-in ECEF JSON is a small, coarse example. Generate a more densely sampled
 version with the core package alone:
 
@@ -120,9 +127,21 @@ python -m venv /tmp/earth-clean
 
 The `[dev]` extra covers the full test suite. The installed-wheel
 smoke script needs only stdlib and blocks Python socket/DNS calls while rendering all three
-modes with both core renderers. After generating the ECEF gallery, `python tools/verify_ecef_browser.py`
-uses Playwright from `[dev]` plus a preinstalled Chromium; it intercepts external
-page requests. The browser binary is not downloaded automatically.
+modes with both core renderers. Browser audits are separate and generate their own scenes:
+
+```sh
+python -m tools.verify_browser
+python -m tools.verify_ecef_browser
+python -m tools.verify_plotly_browser
+```
+
+They use Playwright from `[dev]` with an already installed Chromium, Chrome, or Edge.
+Browser discovery supports Linux, macOS, and Windows. Select a particular executable
+with `--browser-executable PATH` or `OFFLINE_EARTH_BROWSER_EXECUTABLE`; no browser is
+downloaded automatically. Outputs include HTML, screenshots when rendering succeeds,
+and JSON reports that distinguish failures from passes. Canvas interaction checks and
+the separate Plotly WebGL pixel test block and record page network attempts.
+See [browser audit commands, evidence, and limitations](docs/BROWSER_AUDITS.md).
 For headless Matplotlib runs, set `MPLBACKEND=Agg`; the library respects the caller's
 backend rather than changing it during import.
 

@@ -7,7 +7,7 @@ import pytest
 
 @pytest.mark.parametrize('relative', [
     'examples/showcase_ecef.py', 'examples/showcase_offline.py',
-    'tools/verify_ecef_browser.py', 'tools/verify_browser.py',
+    'tools/verify_ecef_browser.py', 'tools/verify_browser.py', 'tools/verify_plotly_browser.py',
 ])
 def test_helper_import_has_no_filesystem_side_effects(relative, monkeypatch, pytestconfig):
     root = pytestconfig.rootpath

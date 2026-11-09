@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' file: data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<title>Offline Earth options</title>
+<style>
+body{font:15px/1.5 system-ui,sans-serif;color:#222;margin:24px auto;max-width:1150px;padding:0 16px}h1{font-size:26px}h2{font-size:20px;margin-top:32px}h3{font-size:16px}a{color:#164d86}table{border-collapse:collapse;width:100%;margin:12px 0}th,td{border:1px solid #ccc;padding:10px;vertical-align:top;text-align:left}th{background:#f3f3f3}small{display:block;font-weight:normal;margin-top:6px}img{display:block;max-width:100%;height:auto;margin-bottom:6px}.examples th{width:22%}.examples td{width:26%}code,pre{font:13px/1.5 ui-monospace,monospace}pre{padding:12px;background:#f5f5f5;white-space:pre-wrap;overflow-wrap:anywhere}.scroll{overflow-x:auto}.note{padding:12px;background:#fff8df;border:1px solid #d7cda7}li{margin:6px 0}.muted{color:#555}@media(max-width:650px){body{font-size:14px}.examples{min-width:680px}th,td{padding:7px}}
+</style></head><body>
+<h1>Offline Earth options</h1>
+<p>Plain examples of the available renderers, views, time controls and inputs. Extract the ZIP and keep the <code>outputs/</code> folder beside this file. No server is needed.</p>
+<p>Unless noted, examples use the same two illustrative LEO paths and a stationary ground site, with markers at <strong>4800 seconds</strong>. Static globe and Canvas camera: 65° W, 25° N. Static globe extent: 1.25 Earth radii. Plotly uses its default 3D perspective.</p>
+<p><a href="sample-ecef.json">JSON input</a> · <a href="sample-ecef.csv">CSV input</a> · <a href="commands.txt">CLI examples</a> · <a href="showcase-manifest.json">Output metadata/checksums</a> · <a href="ASSETS.json">Asset provenance</a></p>
+<h2>1. Renderers and layer modes</h2>
+<p>Click an image to open the full output. <code>imagery</code>, <code>political</code> and <code>combined</code> are distinct in these three renderers.</p>
+<div class="scroll"><table class="examples"><thead><tr><th>Renderer</th><th>Imagery</th><th>Political</th><th>Combined</th></tr></thead><tbody>__RENDERER_ROWS__</tbody></table></div>
+<table><thead><tr><th>Renderer</th><th>Example</th><th>Actual behavior</th></tr></thead><tbody>
+<tr><th>Canvas</th><td><a href="outputs/canvas.html">Open HTML</a></td><td>One self-contained page with all three layer buttons, drag-to-rotate, time slider and Play/Pause. No WebGL. Fixed display scale; no zoom control.</td></tr>
+<tr><th>Plotly<br><small>CLI: <code>interactive</code>; Python: <code>plotly</code></small></th><td><a href="outputs/plotly.html">Open HTML</a></td><td>WebGL 3D ellipsoid and ECEF paths, rotate/zoom/hover and three layer buttons. Initial <code>imagery</code> and <code>combined</code> are identical: imagery plus borders. Use the Blue Marble button for imagery alone. No time slider or player.</td></tr>
+<tr><th>Time series</th><td><a href="outputs/timeseries-km.png">Open X/Y/Z plot (km)</a></td><td>Three coordinate-versus-time panels. No Earth-layer mode or snapshot marker. Requires at least one trajectory.</td></tr>
+</tbody></table>
+<h2>2. Time, camera, extent and direct-API examples</h2>
+<ul>__ADDITIONAL_OUTPUTS__</ul>
+<table><thead><tr><th>Option</th><th>Applies to</th><th>Details</th></tr></thead><tbody>
+<tr><th>Snapshot time</th><td>SVG, map, globe, Plotly</td><td>Complete paths remain visible; only the marker changes. Omitted time selects each track's final sample. Explicit time uses linear ECEF interpolation. A marker outside its track's range is omitted; globe markers may be hidden behind Earth.</td></tr>
+<tr><th>Time controls</th><td>Canvas</td><td>Shows elapsed path samples and an interpolated marker. Omitted initial time is 60% through the aggregate time range. With trajectories, explicit time outside that aggregate range is rejected. Without trajectories, a finite time is accepted and the timeline is hidden. Tracks can have different individual ranges.</td></tr>
+<tr><th>Camera longitude/latitude</th><td>Globe, Canvas</td><td>Degrees. Other backends ignore these shared fields. Plotly instead has its native interactive camera.</td></tr>
+<tr><th>Extent in Earth radii</th><td>Matplotlib globe only</td><td>Sets the projected plot limits; use a larger value for high-altitude data. Canvas, map, SVG, Plotly and timeseries ignore it.</td></tr>
+<tr><th>Coordinate units</th><td>Input: meters. Plotly: km. Time series: km or m.</td><td>Time-series meters require the direct Python function; the unified API/CLI uses km.</td></tr>
+</tbody></table>
+<h2>3. Input and trajectory options</h2>
+<ul>
+<li><strong>JSON:</strong> <a href="sample-ecef.json">sample-ecef.json</a>. A single trajectory object or a wrapper with <code>trajectories</code>; per-track name, color, optional epoch and samples. Explicit metadata must be <code>ECEF</code>, <code>metres</code>, <code>seconds</code>. The spelling <code>metres</code> is the existing serialized token; coordinates are meters. Missing metadata is accepted; conflicting metadata is rejected.</li>
+<li><strong>CSV:</strong> <a href="sample-ecef.csv">sample-ecef.csv</a>. Columns <code>time_s,x_m,y_m,z_m</code>, plus optional <code>name</code>. Grouped by name, or filename stem if absent. CSV does not import custom colors or epochs, so it will not reproduce JSON's track colors.</li>
+<li><strong>Python arrays/generators:</strong> <code>EcefTrajectory.from_arrays(name, time_s, xyz_m, color="#RRGGBB", epoch_utc=None)</code>. Matching lengths, exactly three coordinates per row, finite values, at least one sample, strictly increasing times. Input is copied to immutable validated samples.</li>
+<li><strong>No trajectories:</strong> omit <code>--ecef</code> or pass <code>[]</code>. All Earth renderers work; Canvas hides the timeline. Timeseries requires data.</li>
+<li><strong>Multiple tracks/files:</strong> repeat <code>--ecef FILE</code> or combine loaded lists. Unified rendering requires all epochs to represent the same instant, or all to be omitted. Explicit epochs must be timezone-aware. Times are elapsed seconds, not assumed Unix timestamps.</li>
+<li><strong>Altitude:</strong> <a href="sample-high-altitude.json">high-altitude fixed point</a>. ECEF input can describe different heights and motions; no orbit propagation is performed. Ground maps discard altitude, globe/Canvas preserve it in projection, Plotly shows true 3D coordinates.</li>
+<li><strong>Longitude/latitude tracks and stations:</strong> direct APIs accept raw tracks separately from ECEF; SVG also accepts stations. The raw SVG example includes both; its caller must split raw tracks at the dateline. ECEF ground tracks are split automatically.</li>
+</ul>
+<h2>4. CLI options and defaults</h2>
+<p>The CLI defaults to SVG; <code>RenderSpec()</code> defaults to the Matplotlib map. Choose the output extension explicitly when changing renderer.</p>
+<table><thead><tr><th>CLI option</th><th>Default / accepted value</th></tr></thead><tbody>
+<tr><td>positional output</td><td><code>world.svg</code>. Local destination path.</td></tr>
+<tr><td><code>--renderer</code></td><td><code>svg</code>; choices: svg, map, globe, interactive, canvas, timeseries.</td></tr>
+<tr><td><code>--mode</code></td><td><code>combined</code>; imagery, political, combined. See backend differences above.</td></tr>
+<tr><td><code>--ecef</code></td><td>No input files by default. Repeatable local CSV or JSON path.</td></tr>
+<tr><td><code>--at-s</code></td><td>None; finite elapsed seconds. See differing renderer defaults above.</td></tr>
+<tr><td><code>--center-lon-deg</code></td><td>−30. Finite longitude in degrees; not limited to ±180.</td></tr>
+<tr><td><code>--center-lat-deg</code></td><td>22. Latitude from −90 to 90 degrees.</td></tr>
+<tr><td><code>--extent-earth-radii</code></td><td>1.35. Finite value at least 1.05.</td></tr>
+</tbody></table>
+<p>Shared arguments are validated even for backends that ignore them. There is no CLI <code>--renderer plotly</code>, and no Python <code>backend="interactive"</code> alias.</p>
+<pre>offline-earth earth.html --renderer canvas --mode combined --ecef sample-ecef.json --at-s 4800
+
+offline-earth globe.png --renderer globe --mode political --ecef sample-ecef.json --center-lon-deg -65 --center-lat-deg 25 --extent-earth-radii 1.25</pre>
+<h2>5. Additional Python API options</h2>
+<table><thead><tr><th>API</th><th>Additional options</th></tr></thead><tbody>
+<tr><td><code>svg.svg_map / save_svg</code></td><td>Width 1200, height 620; multiple raw lon/lat tracks and stations. Direct default mode is political. Returns SVG text or writes a file.</td></tr>
+<tr><td><code>matplotlib_world</code></td><td>Single raw lon/lat track and custom title; PNG/SVG/PDF through the output extension.</td></tr>
+<tr><td><code>matplotlib_globe</code></td><td>Single raw track; raster sampling <code>size=780</code> (64–4096), not final figure dimensions; camera and extent. Save other Matplotlib formats or customize the figure with a callback.</td></tr>
+<tr><td><code>plotly_globe</code></td><td><code>include_imagery=True/False</code>, not a mode parameter; borders initially visible. Optional raw lon/lat illustrative track is lifted 95 km above the ellipsoid.</td></tr>
+<tr><td><code>matplotlib_ecef_timeseries</code></td><td><code>unit="m"</code> or <code>"km"</code>, plus custom title.</td></tr>
+<tr><td><code>canvas_globe</code></td><td>Optional raw lon/lat track, trajectories, initial mode/time/camera. No figure callback.</td></tr>
+<tr><td><code>load_canvas_scene / render_canvas_html</code></td><td>Load scene data separately; render with the packaged HTML template or alternate template <em>text</em>. Template substitution is not a general template engine; preserve embedded resources/CSP for offline operation.</td></tr>
+<tr><td><code>post_plot / post_plot_kwargs</code></td><td>Matplotlib and Plotly only. Callback receives the figure and normalized <code>path</code> keyword and replaces default save/close behavior; it may choose not to save, although <code>render_ecef</code> still returns that path. Return a same-backend figure to retain it or None to discard. Caller owns retained figures. Unified <code>figures=[]</code> collects retained results. SVG/Canvas reject callbacks.</td></tr>
+<tr><td><code>indexed_texture</code></td><td>Extension helper: <code>width_px=180</code>, <code>height_px=91</code>, <code>palette_colors=128</code> (2–256). Not exposed through RenderSpec or CLI.</td></tr>
+</tbody></table>
+<pre>from offline_earth.trajectory import read_trajectories
+from offline_earth.visualize import RenderSpec, render_ecef
+from offline_earth.timeseries import matplotlib_ecef_timeseries
+
+tracks = read_trajectories("sample-ecef.json")
+render_ecef(tracks, "globe.png", spec=RenderSpec(
+    backend="globe", mode="combined", at_s=4800,
+    center_lon_deg=-65, center_lat_deg=25, extent_earth_radii=1.25))
+matplotlib_ecef_timeseries("xyz-meters.png", tracks, unit="m")</pre>
+<h2>6. Dependencies and verification limits</h2>
+<ul><li>SVG and Canvas generation: core wheel only, no third-party runtime dependencies.</li><li>Install the <code>[plot]</code> extra from wheels for map, globe and timeseries. It includes NumPy, Matplotlib and Pillow; timeseries does not directly use Pillow.</li><li>Plotly: NumPy, Pillow and Plotly wheels. JavaScript is embedded.</li><li>Viewing generated files does not require Python. Browser binaries are separate installed software and are never downloaded by the library.</li></ul>
+<p class="note">Static outputs and local files are generated and checked in Python. Browser interactions, WebGL rendering and this HTML layout remain unverified in the current execution environment. The PNGs are static Matplotlib output, not browser screenshots.</p>
+<p class="muted">The paths are illustrative, not orbit propagation. ECEF is Earth-fixed; no ECI conversion, terrain or high-precision limb clipping. Borders are simplified. NASA imagery is July 2004, not a live feed. Canvas/Matplotlib globe appearance is spherical; ECEF transforms use WGS84 and Plotly uses an ellipsoid. Asset terms and code-license status are unchanged. No merge, release or PR closure is performed.</p>
+</body></html>

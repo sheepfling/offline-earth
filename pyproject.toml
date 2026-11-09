@@ -11,7 +11,7 @@ dependencies = []
 plot = ["numpy>=1.26", "matplotlib>=3.7", "pillow>=10"]
 interactive = ["numpy>=1.26", "plotly>=5", "pillow>=10"]
 examples = ["offline-earth[plot,interactive]"]
-dev = ["offline-earth[examples]", "pytest>=7", "setuptools>=68", "wheel", "playwright>=1.40"]
+dev = ["offline-earth[examples]", "pytest>=7", "setuptools>=68", "wheel", "playwright>=1.48"]
 [project.scripts]
 offline-earth = "offline_earth.cli:main"
 [tool.setuptools]
