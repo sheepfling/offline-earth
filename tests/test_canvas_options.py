@@ -11,7 +11,7 @@ def test_canvas_respects_initial_settings(tmp_path, mode):
     tr = EcefTrajectory.from_arrays('demo', [0, 10], [[7e6,0,0],[0,7e6,0]])
     p = render_ecef([tr], tmp_path/'test.html', spec=RenderSpec(
         backend='canvas', mode=mode, at_s=3, center_lon_deg=40, center_lat_deg=50))
-    html = p.read_text()
+    html = p.read_text(encoding='utf-8')
     config = json.loads(html.split('const initial = ')[1].split(';')[0])
     assert config == dict(mode=mode,at_s=3,center_lon_deg=40,center_lat_deg=50)
     assert "connect-src 'none'" in html
@@ -37,7 +37,7 @@ def test_canvas_escapes_all_caller_track_json(tmp_path):
     attack = '</script><img src=x onerror=alert(1)>'
     p = tmp_path / 'track.html'
     canvas_globe(p, track=[(attack, 0)])
-    html = p.read_text()
+    html = p.read_text(encoding='utf-8')
     assert attack not in html
     assert html.count('</script>') == 1
     assert '\\u003c/script\\u003e' in html
@@ -53,4 +53,4 @@ def test_canvas_template_replacement_does_not_reinterpret_data(tmp_path):
     tr = EcefTrajectory.from_arrays('__TRACK_JSON__', [0], [(7e6, 0, 0)])
     path = tmp_path / 'tokens.html'
     canvas_globe(path, trajectories=[tr])
-    assert '"name":"__TRACK_JSON__"' in path.read_text()
+    assert '"name":"__TRACK_JSON__"' in path.read_text(encoding='utf-8')

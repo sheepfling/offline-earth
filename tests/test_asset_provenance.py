@@ -12,7 +12,7 @@ from offline_earth.assets import BLUE_MARBLE
 
 def test_nasa_image_matches_manifest_and_renderer_metadata():
     data = files('offline_earth').joinpath('data')
-    record = json.loads(data.joinpath('ASSETS.json').read_text())['assets']['blue_marble.jpg']
+    record = json.loads(data.joinpath('ASSETS.json').read_text(encoding='utf-8'))['assets']['blue_marble.jpg']
     image_bytes = BLUE_MARBLE.read_bytes()
     assert len(image_bytes) == record['size_bytes']
     assert hashlib.sha256(image_bytes).hexdigest() == record['sha256']
@@ -26,7 +26,7 @@ def test_nasa_image_matches_manifest_and_renderer_metadata():
 
 def test_manifest_preserves_direct_source_credit_and_country_uncertainty():
     data = files('offline_earth').joinpath('data')
-    manifest = json.loads(data.joinpath('ASSETS.json').read_text())
+    manifest = json.loads(data.joinpath('ASSETS.json').read_text(encoding='utf-8'))
     image = manifest['assets']['blue_marble.jpg']
     assert urlparse(image['source_url']).hostname == 'assets.science.nasa.gov'
     assert urlparse(image['source_index_url']).hostname == 'science.nasa.gov'

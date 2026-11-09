@@ -1,9 +1,9 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=68", "setuptools-scm>=9.2.2,<10", "wheel"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "offline-earth"
-version = "0.3.1"
+dynamic = ["version"]
 description = "Offline Blue Marble and political Earth maps with timestamped ECEF trajectories"
 requires-python = ">=3.10"
 dependencies = []
@@ -11,10 +11,17 @@ dependencies = []
 plot = ["numpy>=1.26", "matplotlib>=3.7", "pillow>=10"]
 interactive = ["numpy>=1.26", "plotly>=5", "pillow>=10"]
 examples = ["offline-earth[plot,interactive]"]
-dev = ["offline-earth[examples]", "pytest>=7", "setuptools>=68", "wheel", "playwright>=1.48"]
+dev = ["offline-earth[examples]", "pytest>=7", "setuptools>=68", "setuptools-scm>=9.2.2,<10", "wheel", "build>=1.2", "playwright>=1.48"]
 [project.scripts]
 offline-earth = "offline_earth.cli:main"
+[tool.setuptools]
+include-package-data = false
 [tool.setuptools.package-data]
 offline_earth = ["data/*.json", "data/*.jpg", "templates/*.html"]
 [tool.setuptools.packages.find]
 where = ["src"]
+[tool.setuptools_scm]
+version_scheme = "guess-next-dev"
+local_scheme = "node-and-date"
+[tool.setuptools_scm.scm.git]
+pre_parse = "fail_on_shallow"

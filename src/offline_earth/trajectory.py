@@ -189,7 +189,8 @@ def read_trajectories(path: PathInput) -> list[EcefTrajectory]:
 
 
 def write_trajectories(path: PathInput, tracks: Iterable[EcefTrajectory]) -> None:
+    """Write UTF-8 JSON with LF newlines on every platform."""
     path = output_path(path)
     payload = {"frame": "ECEF", "units": "meters", "time_units": "seconds",
                "trajectories": [track.to_dict() for track in tracks]}
-    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8", newline="\n")

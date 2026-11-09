@@ -59,7 +59,7 @@ def test_catalog_matches_cli_flags_and_defaults(capsys):
         main(['--help'])
     assert error.value.code == 0
     help_text = capsys.readouterr().out
-    template = Path(final_showcase.__file__).with_name('templates').joinpath('showcase.html').read_text()
+    template = Path(final_showcase.__file__).with_name('templates').joinpath('showcase.html').read_text(encoding='utf-8')
     for flag in ('--renderer', '--mode', '--ecef', '--at-s', '--center-lon-deg', '--center-lat-deg', '--extent-earth-radii'):
         assert flag in help_text and flag in template
     assert '{svg,map,globe,interactive,canvas,timeseries}' in help_text
@@ -76,9 +76,9 @@ def test_actual_catalog_covers_all_backends_and_inputs_offline(tmp_path, monkeyp
         monkeypatch.setattr(socket, method, denied)
     out = tmp_path/'catalog'
     out.mkdir()
-    (out/'unrelated.txt').write_text('Do not include')
+    (out/'unrelated.txt').write_text('Do not include', encoding='utf-8')
     archive = final_showcase.build_showcase(out)
-    manifest = json.loads((out/'showcase-manifest.json').read_text())
+    manifest = json.loads((out/'showcase-manifest.json').read_text(encoding='utf-8'))
     cases = manifest['examples']
     assert len(cases) == 18
     assert {c['backend'] for c in cases} == set(get_args(Backend))
@@ -90,7 +90,7 @@ def test_actual_catalog_covers_all_backends_and_inputs_offline(tmp_path, monkeyp
     assert 'extent_earth_radii' not in manifest['main_canvas_camera']
     assert manifest['plotly_camera'] == 'Default Plotly 3D perspective'
     assert 'Not verified' in manifest['browser_validation']
-    html = (out/'index.html').read_text()
+    html = (out/'index.html').read_text(encoding='utf-8')
     parser = Links(); parser.feed(html)
     assert not parser.scripts
     assert 'One planet' not in html and 'Every perspective' not in html
@@ -101,8 +101,8 @@ def test_actual_catalog_covers_all_backends_and_inputs_offline(tmp_path, monkeyp
     for name, item in manifest['files'].items():
         raw=(out/name).read_bytes()
         assert len(raw)==item['size_bytes'] and hashlib.sha256(raw).hexdigest()==item['sha256']
-    assert json.loads((out/'sample-ecef.json').read_text())['units'] == 'meters'
-    assert json.loads((out/'sample-high-altitude.json').read_text())['units'] == 'meters'
+    assert json.loads((out/'sample-ecef.json').read_text(encoding='utf-8'))['units'] == 'meters'
+    assert json.loads((out/'sample-high-altitude.json').read_text(encoding='utf-8'))['units'] == 'meters'
     json_tracks=read_trajectories(out/'sample-ecef.json')
     csv_tracks=read_trajectories(out/'sample-ecef.csv')
     assert [t.samples for t in json_tracks]==[t.samples for t in csv_tracks]

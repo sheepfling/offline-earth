@@ -106,13 +106,13 @@ def test_all_outputs_offline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     matplotlib_ecef_timeseries(tmp_path / "components.png", [tr])
     canvas_globe(tmp_path / "canvas.html", trajectories=[tr])
     plotly_globe(tmp_path / "plotly.html", trajectories=[tr], at_s=1)
-    assert (tmp_path / "map.svg").read_text().count("polyline") > 0
+    assert (tmp_path / "map.svg").read_text(encoding='utf-8').count("polyline") > 0
     for name in ("map.png", "globe.png", "components.png"):
         assert (tmp_path / name).read_bytes().startswith(b"\x89PNG")
-    canvas = (tmp_path / "canvas.html").read_text()
+    canvas = (tmp_path / "canvas.html").read_text(encoding='utf-8')
     assert 'const ecefTrajectories = [' in canvas and 'id="time"' in canvas
     assert "https://" not in canvas and "http://" not in canvas
-    plotly = (tmp_path / "plotly.html").read_text()
+    plotly = (tmp_path / "plotly.html").read_text(encoding='utf-8')
     parser = _Assets()
     parser.feed(plotly)
     assert not parser.external
@@ -143,7 +143,7 @@ def test_canvas_escapes_html_sensitive_names(tmp_path: Path) -> None:
                     [0], [(7_000_000, 0, 0)])
     output = tmp_path / "safe.html"
     canvas_globe(output, trajectories=[malicious])
-    html = output.read_text()
+    html = output.read_text(encoding='utf-8')
     assert "<script>bad()" not in html
     assert "\\u003cscript" in html
 
@@ -167,7 +167,7 @@ def test_json_rejects_conflicting_metadata(tmp_path: Path, location, key, bad) -
         raw = entry
         raw[key] = bad
     path = tmp_path / "conflicting.json"
-    path.write_text(json.dumps(raw))
+    path.write_text(json.dumps(raw), encoding='utf-8')
     with pytest.raises(ValueError, match=f"JSON {key} must be"):
         read_trajectories(path)
 
@@ -185,7 +185,7 @@ def test_json_accepts_meters_metadata_without_converting(tmp_path: Path, locatio
         raw = entry
         raw["units"] = "meters"
     path = tmp_path / "meters.json"
-    path.write_text(json.dumps(raw))
+    path.write_text(json.dumps(raw), encoding='utf-8')
     assert read_trajectories(path) == [tr]
 
 
@@ -194,7 +194,7 @@ def test_json_metadata_round_trip(tmp_path: Path) -> None:
                                    epoch_utc=datetime(2026, 1, 1, tzinfo=timezone.utc))
     path = tmp_path / "roundtrip.json"
     write_trajectories(path, [tr])
-    raw = json.loads(path.read_text())
+    raw = json.loads(path.read_text(encoding='utf-8'))
     assert {key: raw[key] for key in ("frame", "units", "time_units")} == {
         "frame": "ECEF", "units": "meters", "time_units": "seconds"}
     assert read_trajectories(path) == [tr]
@@ -205,7 +205,7 @@ def test_json_legacy_missing_metadata(tmp_path: Path, wrapped: bool) -> None:
     tr = EcefTrajectory.from_arrays("Legacy", [0], [(7e6, 0, 0)])
     entry = tr.to_dict()
     path = tmp_path / "legacy.json"
-    path.write_text(json.dumps({"trajectories": [entry]} if wrapped else entry))
+    path.write_text(json.dumps({"trajectories": [entry]} if wrapped else entry), encoding='utf-8')
     assert read_trajectories(path) == [tr]
 
 
@@ -237,6 +237,10 @@ def test_optional_backends_cold_import_and_render_without_network(tmp_path, pyte
 import sys
 import socket
 from pathlib import Path
+
+# Match captured pipes explicitly; do not change filesystem text defaults.
+sys.stdout.reconfigure(encoding='utf-8')
+sys.stderr.reconfigure(encoding='utf-8')
 
 roots = ('offline_earth', 'numpy', 'PIL', 'matplotlib', 'plotly')
 assert not any(name.split('.')[0] in roots for name in sys.modules)
@@ -278,7 +282,7 @@ print('PASS: cold optional imports and four renders; zero socket/DNS attempts')
     environment = dict(os.environ, MPLCONFIGDIR=str(tmp_path / 'mpl-cache'))
     result = subprocess.run(
         [sys.executable, '-I', '-c', code, str(pytestconfig.rootpath / 'src'), str(tmp_path)],
-        env=environment, capture_output=True, text=True, timeout=120,
+        env=environment, capture_output=True, text=True, encoding='utf-8', timeout=120,
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert 'zero socket/DNS attempts' in result.stdout

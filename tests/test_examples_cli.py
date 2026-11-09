@@ -10,9 +10,10 @@ import pytest
 
 
 def run_example(root, module, *args, cwd=None):
-    env = dict(os.environ, PYTHONPATH=os.pathsep.join((str(root), str(root / 'src'))))
+    env = dict(os.environ, PYTHONPATH=os.pathsep.join((str(root), str(root / 'src'))),
+               PYTHONIOENCODING='utf-8')
     return subprocess.run([sys.executable, '-m', module, *map(str, args)],
-                          cwd=cwd or root, env=env, capture_output=True, text=True)
+                          cwd=cwd or root, env=env, capture_output=True, text=True, encoding='utf-8')
 
 
 @pytest.mark.parametrize('module, option', [
@@ -32,7 +33,7 @@ def test_quickstart_explicit_output(tmp_path, pytestconfig):
     output = tmp_path / 'nested' / 'globe.html'
     result = run_example(pytestconfig.rootpath, 'examples.quickstart', '--output', output)
     assert result.returncode == 0, result.stderr
-    assert '<html' in output.read_text().lower()
+    assert '<html' in output.read_text(encoding='utf-8').lower()
 
 
 def test_generate_samples(tmp_path, pytestconfig):
@@ -40,8 +41,14 @@ def test_generate_samples(tmp_path, pytestconfig):
     result = run_example(pytestconfig.rootpath, 'examples.generate_samples',
                          '--output', output, '--sample-count', '13')
     assert result.returncode == 0, result.stderr
-    assert output.read_bytes() == (pytestconfig.rootpath / 'examples/data/sample_ecef.json').read_bytes()
-    data = json.loads(output.read_text())
+    reference = (pytestconfig.rootpath / 'examples/data/sample_ecef.json').read_text(encoding='utf-8')
+    assert output.read_text(encoding='utf-8') == reference
+    assert b'\r\n' not in output.read_bytes()
+    # Git may check out text fixtures with CRLF on Windows.
+    crlf_reference = tmp_path / 'crlf-reference.json'
+    crlf_reference.write_bytes(reference.replace('\n', '\r\n').encode('utf-8'))
+    assert output.read_text(encoding='utf-8') == crlf_reference.read_text(encoding='utf-8')
+    data = json.loads(output.read_text(encoding='utf-8'))
     assert [len(t['samples']) for t in data['trajectories']] == [13, 13, 2]
     assert data['trajectories'][0]['samples'][-1]['time_s'] == 6000
     result = run_example(pytestconfig.rootpath, 'examples.generate_samples',
@@ -70,9 +77,10 @@ import examples.utilities.constants
 import examples.utilities.trajectories
 '''
     root = pytestconfig.rootpath
-    env = dict(os.environ, PYTHONPATH=os.pathsep.join((str(root), str(root / 'src'))))
+    env = dict(os.environ, PYTHONPATH=os.pathsep.join((str(root), str(root / 'src'))),
+               PYTHONIOENCODING='utf-8')
     result = subprocess.run([sys.executable, '-c', code], cwd=tmp_path, env=env,
-                            capture_output=True, text=True)
+                            capture_output=True, text=True, encoding='utf-8')
     assert result.returncode == 0, result.stderr
     assert list(tmp_path.iterdir()) == []
 
