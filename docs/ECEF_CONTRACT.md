@@ -86,7 +86,7 @@ The Matplotlib and Canvas Earth image projection is intentionally spherical for 
 - Wheel contains the country vectors and Blue Marble JPEG as Python package data.
 - No network calls or automatic dataset downloads are built into the library.
 - Only Python wheels may be installed; the optional display packages must already exist in an **offline platform-specific wheelhouse** when installing air-gapped.
-- Core wheel can install with `pip install --no-index --only-binary=:all: --no-deps path/to/offline_earth-0.3.1-py3-none-any.whl`.
+- Core wheel can install with `pip install --no-index --only-binary=:all: --no-deps path/to/offline_earth-VERSION-py3-none-any.whl`.
 - Tests block socket and DNS operations while actually rendering. A separate browser test intercepts and aborts every external request and checks Canvas mode, time scrubber, Play/Pause and dragging.
 
 ## Known gaps

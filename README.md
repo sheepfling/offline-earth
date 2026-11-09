@@ -12,9 +12,11 @@ Canvas supports drag-to-rotate, layer selection, time scrubbing and Play/Pause. 
 CDNs, API keys, dataset cache, delayed downloads, telemetry or remote services are used.
 Its HTML also includes a policy denying network connections and external resources.
 
+Replace `VERSION` below with the version in your built wheel filename.
+
 ```sh
 python -m pip install --no-index --only-binary=:all: --no-deps \
-  dist/offline_earth-0.3.1-py3-none-any.whl
+  dist/offline_earth-VERSION-py3-none-any.whl
 offline-earth earth.html --renderer canvas --mode combined \
   --ecef examples/data/sample_ecef.json --at-s 3600
 offline-earth earth.svg --renderer svg --mode political \
@@ -58,10 +60,10 @@ See [coordinate/time contract](docs/ECEF_CONTRACT.md).
 ```sh
 # ONLINE staging, on a machine matching the target Python/OS/architecture:
 python -m pip download --only-binary=:all: --dest wheelhouse \
-  './dist/offline_earth-0.3.1-py3-none-any.whl[plot,interactive]'
+  './dist/offline_earth-VERSION-py3-none-any.whl[plot,interactive]'
 # OFFLINE installation after transferring the entire wheelhouse:
 python -m pip install --no-index --only-binary=:all: --find-links=wheelhouse \
-  'offline-earth[plot,interactive]==0.3.1'
+  'offline-earth[plot,interactive]==VERSION'
 ```
 
 Wheel acquisition is separate from offline runtime. A successful wheel download for one
@@ -124,6 +126,34 @@ python -m venv /tmp/earth-clean
 /tmp/earth-clean/bin/pip install --no-index --no-deps --only-binary=:all: dist/*.whl
 /tmp/earth-clean/bin/python tools/verify_core_offline.py
 ```
+
+### Versioned builds
+
+Versions come from Git via **setuptools-scm**, not a hard-coded release number.
+An exact clean version tag such as `v1.2.3` builds as `1.2.3`; later commits use
+an incremented development version with commit identity. Dirty checkouts are marked
+with a date. With no tags, the default starts at `0.1.devN+gHASH`, not the former
+hard-coded `0.3.1`. No release tag is created by building.
+
+Use a full Git checkout with its tags. Shallow checkouts fail rather than guess
+from incomplete history; acquiring missing history/tags is an explicit online
+preparation step, never an automatic build download. A plain source ZIP without
+Git metadata or an sdist's `PKG-INFO` fails rather than claiming an invented version.
+
+For an offline rebuild without Git, create and transfer an sdist. Its `PKG-INFO`
+preserves the derived version. Preinstall the build requirements from wheels
+(`setuptools>=68`, `setuptools-scm>=9.2.2,<10`, `wheel`, and `build>=1.2`, plus their
+wheel dependencies) or use the `[dev]` environment above, then:
+
+```sh
+python -m build --sdist --no-isolation --outdir dist
+# After transferring/extracting that sdist, build from the extracted directory:
+python -m pip wheel --no-index --no-deps --no-build-isolation . -w dist
+```
+
+Installed wheels need neither Git nor setuptools-scm. Read their recorded version
+with `python -c "from importlib.metadata import version; print(version('offline-earth'))"`.
+Building these artifacts does not publish to PyPI or create a release.
 
 The `[dev]` extra covers the full test suite. The installed-wheel
 smoke script needs only stdlib and blocks Python socket/DNS calls while rendering all three
