@@ -129,14 +129,17 @@ python -m venv /tmp/earth-clean
 
 ### Versioned builds
 
-The initial version target is **v0.1.0**, with package version **0.1.0**.
-Versions come from Git via **setuptools-scm**, not a hard-coded release number.
-A clean checkout tagged `v0.1.0` builds `offline_earth-0.1.0-py3-none-any.whl`;
-later commits use `0.1.1.devN+gHASH`. Dirty checkouts also include a date.
-Until that tag exists, untagged history produces `0.1.devN+gHASH`, a development
-build before `0.1.0`, not an already finalized `0.1.0` release. Only the final
-approved commit should receive the `v0.1.0` tag. Building does not create a tag,
-merge the PR, or publish a release.
+The version sequence is **v0.0.1** for the previous squash merge and **v0.0.2**
+for the Windows portability and SCM-versioning changes. The historical v0.0.1
+commit predates SCM versioning; its old hard-coded package metadata is unchanged.
+
+Versions now come from Git via **setuptools-scm**. A clean checkout tagged
+`v0.0.2` builds `offline_earth-0.0.2-py3-none-any.whl`; later commits use
+`0.0.3.devN+gHASH`. Commits after `v0.0.1` and before `v0.0.2` use
+`0.0.2.devN+gHASH`. Dirty checkouts also include a date. Tags belong on the
+corresponding finalized commits. Building never creates tags, merges a PR,
+or publishes a release. A checkout missing version tags may produce an unanchored
+development version; it must not be mistaken for a tagged release.
 
 Use a full Git checkout with its tags. Shallow checkouts fail rather than guess
 from incomplete history; acquiring missing history/tags is an explicit online
