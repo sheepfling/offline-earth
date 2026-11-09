@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "offline-earth"
+version = "0.3.1"
+description = "Offline Blue Marble and political Earth maps with timestamped ECEF trajectories"
+requires-python = ">=3.10"
+dependencies = []
+[project.optional-dependencies]
+plot = ["numpy>=1.26", "matplotlib>=3.7", "pillow>=10"]
+interactive = ["numpy>=1.26", "plotly>=5", "pillow>=10"]
+examples = ["offline-earth[plot,interactive]"]
+dev = ["offline-earth[examples]", "pytest>=7", "setuptools>=68", "wheel", "playwright>=1.48"]
+[project.scripts]
+offline-earth = "offline_earth.cli:main"
+[tool.setuptools.package-data]
+offline_earth = ["data/*.json", "data/*.jpg", "templates/*.html"]
+[tool.setuptools.packages.find]
+where = ["src"]
