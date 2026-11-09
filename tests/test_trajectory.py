@@ -150,13 +150,14 @@ def test_canvas_escapes_html_sensitive_names(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize("location", ["document", "entry", "single"])
 @pytest.mark.parametrize("key,bad", [
-    ("frame", "ECI"), ("units", "kilometres"), ("time_units", "days"),
+    ("frame", "ECI"), ("units", "kilometers"), ("time_units", "days"),
+    ("units", "metres"), ("units", "Meters"),
     ("frame", None), ("units", None), ("time_units", None),
 ])
 def test_json_rejects_conflicting_metadata(tmp_path: Path, location, key, bad) -> None:
     tr = EcefTrajectory.from_arrays("Demo", [0, 1], [(7e6, 0, 0), (7e6, 1, 1)])
     entry = tr.to_dict()
-    raw = {"frame": "ECEF", "units": "metres", "time_units": "seconds",
+    raw = {"frame": "ECEF", "units": "meters", "time_units": "seconds",
            "trajectories": [entry]}
     if location == "document":
         raw[key] = bad
@@ -171,6 +172,23 @@ def test_json_rejects_conflicting_metadata(tmp_path: Path, location, key, bad) -
         read_trajectories(path)
 
 
+@pytest.mark.parametrize("location", ["document", "entry", "single"])
+def test_json_accepts_meters_metadata_without_converting(tmp_path: Path, location) -> None:
+    tr = EcefTrajectory.from_arrays("Meters", [0, 1], [(7e6, 1200, -2500), (7e6, 2400, -5000)])
+    entry = tr.to_dict()
+    raw = {"trajectories": [entry]}
+    if location == "document":
+        raw["units"] = "meters"
+    elif location == "entry":
+        entry["units"] = "meters"
+    else:
+        raw = entry
+        raw["units"] = "meters"
+    path = tmp_path / "meters.json"
+    path.write_text(json.dumps(raw))
+    assert read_trajectories(path) == [tr]
+
+
 def test_json_metadata_round_trip(tmp_path: Path) -> None:
     tr = EcefTrajectory.from_arrays("Demo", [0, 1], [(7e6, 0, 0), (7e6, 1, 1)],
                                    epoch_utc=datetime(2026, 1, 1, tzinfo=timezone.utc))
@@ -178,7 +196,7 @@ def test_json_metadata_round_trip(tmp_path: Path) -> None:
     write_trajectories(path, [tr])
     raw = json.loads(path.read_text())
     assert {key: raw[key] for key in ("frame", "units", "time_units")} == {
-        "frame": "ECEF", "units": "metres", "time_units": "seconds"}
+        "frame": "ECEF", "units": "meters", "time_units": "seconds"}
     assert read_trajectories(path) == [tr]
 
 

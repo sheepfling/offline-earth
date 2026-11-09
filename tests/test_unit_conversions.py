@@ -138,9 +138,9 @@ def test_timeseries_units_scale_all_components_and_keep_timestamps(tmp_path, uni
         plt.close(fig)
 
 
-def test_meter_identifier_spelling_does_not_change_serialized_units(tmp_path):
+def test_json_serializes_meters_and_preserves_coordinates(tmp_path):
     trajectory = EcefTrajectory.from_arrays('sample', [0], [(7_000_000, -2000, 3000)])
     target = tmp_path / 'trajectory.json'
     write_trajectories(target, [trajectory])
-    assert json.loads(target.read_text())['units'] == 'metres'
+    assert json.loads(target.read_text())['units'] == 'meters'
     assert read_trajectories(target) == [trajectory]

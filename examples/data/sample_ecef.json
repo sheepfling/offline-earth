@@ -1,6 +1,6 @@
 {
   "frame": "ECEF",
-  "units": "metres",
+  "units": "meters",
   "time_units": "seconds",
   "trajectories": [
     {

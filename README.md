@@ -6,7 +6,7 @@ with timestamped **ECEF trajectories in meters**.
 ## Recommended path
 
 The core wheel has **zero third-party runtime dependencies**. It contains the JPEG,
-country geometry, provenance, asset checksums and upstream license notices. Generate an
+country geometry, provenance, asset checksums and reuse guidance. Generate an
 interactive, self-contained Canvas HTML globe or an SVG using only Python's standard library.
 Canvas supports drag-to-rotate, layer selection, time scrubbing and Play/Pause. No tiles,
 CDNs, API keys, dataset cache, delayed downloads, telemetry or remote services are used.
@@ -154,7 +154,6 @@ backend rather than changing it during import.
 - `data/ASSETS.json`: the single provenance record, with direct source URLs, sizes,
   hashes, image metadata, credits, reuse terms and limitations. The exact upstream
   country-data version was not recorded in the input archive and remains unknown.
-- `licenses/README.md`: points to the bundled asset record; also included in the wheel.
 
 Inspect wheels with any ZIP reader. No opaque asset-fetching library is required.
 NASA imagery credit: NASA Earth Observatory (Reto Stöckli). NASA imagery is generally

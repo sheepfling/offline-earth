@@ -15,7 +15,7 @@
 ```json
 {
   "frame": "ECEF",
-  "units": "metres",
+  "units": "meters",
   "time_units": "seconds",
   "trajectories": [
     {
@@ -96,14 +96,14 @@ No orbit dynamics or ECI→ECEF conversion, terrain, satellite imagery by date, 
 ## JSON metadata validation
 
 At both the document wrapper and individual trajectory level, explicitly supplied
-`frame`, `units`, and `time_units` must be exactly `"ECEF"`, `"metres"`, and
+`frame`, `units`, and `time_units` must be exactly `"ECEF"`, `"meters"`, and
 `"seconds"`, respectively. Conflicting values, alternate spellings/case and null
 values raise `ValueError` before positions are interpreted. No conversion is
 performed. Legacy JSON omitting any or all metadata remains supported and uses
 ECEF meters and elapsed seconds, as also expressed by `ecef_m` and `time_s`.
 This applies to wrapped trajectory collections and single-trajectory JSON.
-The stored `"metres"` token is retained for existing files; Python conversion
-constants and prose use the `METERS`/meters spelling.
+Writers emit `"units": "meters"`. Files using the former `"metres"` spelling must
+change that metadata value to `"meters"`; their numeric ECEF coordinates do not change.
 
 ## Public paths and coordinate types
 

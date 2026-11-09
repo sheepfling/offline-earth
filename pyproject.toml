@@ -14,9 +14,6 @@ examples = ["offline-earth[plot,interactive]"]
 dev = ["offline-earth[examples]", "pytest>=7", "setuptools>=68", "wheel", "playwright>=1.48"]
 [project.scripts]
 offline-earth = "offline_earth.cli:main"
-[tool.setuptools]
-license-files = ["licenses/README.md"]
-
 [tool.setuptools.package-data]
 offline_earth = ["data/*.json", "data/*.jpg", "templates/*.html"]
 [tool.setuptools.packages.find]

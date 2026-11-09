@@ -142,7 +142,7 @@ def _validate_json_metadata(value: object) -> None:
     """Reject explicit frame/unit conflicts; absent legacy metadata is allowed."""
     if not isinstance(value, dict):
         raise ValueError("Trajectory JSON must contain objects")
-    for key, expected in (("frame", "ECEF"), ("units", "metres"),
+    for key, expected in (("frame", "ECEF"), ("units", "meters"),
                           ("time_units", "seconds")):
         if key in value and value[key] != expected:
             raise ValueError(f"JSON {key} must be {expected!r}; got {value[key]!r}. "
@@ -156,7 +156,7 @@ def read_trajectories(path: PathInput) -> list[EcefTrajectory]:
 
     Coordinates are already ECEF, not ECI; times are seconds relative to
     the supplied epoch (when given), not Unix timestamps by default.
-    JSON metadata, when present, must be ECEF/metres/seconds at both the
+    JSON metadata, when present, must be ECEF/meters/seconds at both the
     document and trajectory levels. Omitted metadata retains the legacy defaults.
     """
     path = input_path(path)
@@ -190,6 +190,6 @@ def read_trajectories(path: PathInput) -> list[EcefTrajectory]:
 
 def write_trajectories(path: PathInput, tracks: Iterable[EcefTrajectory]) -> None:
     path = output_path(path)
-    payload = {"frame": "ECEF", "units": "metres", "time_units": "seconds",
+    payload = {"frame": "ECEF", "units": "meters", "time_units": "seconds",
                "trajectories": [track.to_dict() for track in tracks]}
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")

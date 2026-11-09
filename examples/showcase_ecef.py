@@ -85,7 +85,7 @@ def main(output_dir: str | Path | None = None, *, post_plot=None,
         sheet = Image.new("RGB", (tw*3+56, th*2+154), "#091827")
         d=ImageDraw.Draw(sheet)
         d.text((30,20), "OFFLINE EARTH   /   TIMESTAMPED ECEF TRAJECTORIES", fill="#f0f7ff")
-        d.text((30,52), "One validated metre-and-second input model • Maps, globe, components-vs-time • No network", fill="#b2c7d7")
+        d.text((30,52), "One validated meter-and-second input model • Maps, globe, components-vs-time • No network", fill="#b2c7d7")
         for index, (label, filename) in enumerate(panels):
             image = Image.open(out / filename).convert("RGB")
             image.thumbnail((tw-16,th-28), Image.Resampling.LANCZOS)

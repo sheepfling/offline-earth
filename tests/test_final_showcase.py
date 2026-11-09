@@ -100,6 +100,8 @@ def test_actual_catalog_covers_all_backends_and_inputs_offline(tmp_path, monkeyp
     for name, item in manifest['files'].items():
         raw=(out/name).read_bytes()
         assert len(raw)==item['size_bytes'] and hashlib.sha256(raw).hexdigest()==item['sha256']
+    assert json.loads((out/'sample-ecef.json').read_text())['units'] == 'meters'
+    assert json.loads((out/'sample-high-altitude.json').read_text())['units'] == 'meters'
     json_tracks=read_trajectories(out/'sample-ecef.json')
     csv_tracks=read_trajectories(out/'sample-ecef.csv')
     assert [t.samples for t in json_tracks]==[t.samples for t in csv_tracks]

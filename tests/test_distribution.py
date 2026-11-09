@@ -37,7 +37,8 @@ def test_built_core_wheel_contract(tmp_path, pytestconfig):
             assert len(data) == item['size_bytes']
             assert hashlib.sha256(data).hexdigest() == item['sha256']
         assert not any('BASEMAP_DATA_' in name for name in names)
-        assert any(name.endswith('/licenses/README.md') for name in names)
+        assert not any(name.endswith('/licenses/README.md') for name in names)
+        assert metadata.get_all('License-File', []) == []
         assert 'offline_earth/templates/canvas.html' in names
         assert prefix + 'PROVENANCE.txt' not in names
         image = manifest['assets']['blue_marble.jpg']
