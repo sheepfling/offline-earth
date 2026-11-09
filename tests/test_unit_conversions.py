@@ -142,7 +142,7 @@ def test_json_serializes_meters_and_preserves_coordinates(tmp_path):
     trajectory = EcefTrajectory.from_arrays('sample', [0], [(7_000_000, -2000, 3000)])
     target = tmp_path / 'trajectory.json'
     write_trajectories(target, [trajectory])
-    assert json.loads(target.read_text())['units'] == 'meters'
+    assert json.loads(target.read_text(encoding='utf-8'))['units'] == 'meters'
     assert read_trajectories(target) == [trajectory]
 
 

@@ -89,7 +89,7 @@ def test_read_returns_editable_collection_of_immutable_tracks(tmp_path, extensio
     if extension == 'json':
         write_trajectories(path, [track])
     else:
-        path.write_text('name,time_s,x_m,y_m,z_m\nsafe,0,1,2,3\n')
+        path.write_text('name,time_s,x_m,y_m,z_m\nsafe,0,1,2,3\n', encoding='utf-8')
     tracks = read_trajectories(path)
     assert tracks == [track] and isinstance(tracks, list)
     tracks.append(track)

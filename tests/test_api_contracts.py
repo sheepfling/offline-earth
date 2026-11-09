@@ -96,7 +96,7 @@ def test_shared_camera_math_uses_degrees():
 def test_canvas_physical_constants_are_serialized_from_shared_source(tmp_path):
     p=tmp_path/'canvas.html'
     canvas_globe(p)
-    data=json.loads(p.read_text().split('const earthConstants = ')[1].split(';')[0])
+    data=json.loads(p.read_text(encoding='utf-8').split('const earthConstants = ')[1].split(';')[0])
     assert data['radius_m'] == EARTH_RADIUS_M
     assert data['a_m'] == WGS84_A_M and data['b_m'] == WGS84_B_M
 

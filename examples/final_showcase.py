@@ -146,7 +146,7 @@ def build_showcase(output_dir: str | Path | None = None) -> Path:
         'Use MPLBACKEND=Agg for headless Matplotlib. All catalog code/templates/outputs stay outside the wheel.\n'
         'The paths are illustrative data, not orbit propagation. Asset provenance is in ASSETS.json.\n'
         'No code-license decision, publication, merge, release or PR closure is performed.\n', encoding='utf-8')
-    (out / 'ASSETS.json').write_text(files('offline_earth').joinpath('data/ASSETS.json').read_text(), encoding='utf-8')
+    (out / 'ASSETS.json').write_text(files('offline_earth').joinpath('data/ASSETS.json').read_text(encoding='utf-8'), encoding='utf-8')
     filenames = ['index.html', 'README.txt', 'commands.txt', 'ASSETS.json',
                  'sample-ecef.json', 'sample-ecef.csv', 'sample-high-altitude.json']
     filenames += ['outputs/' + item.filename for item in examples]

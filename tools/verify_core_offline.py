@@ -20,7 +20,7 @@ with tempfile.TemporaryDirectory() as d:
                             spec=RenderSpec(backend=backend, mode=mode,at_s=5))
             assert p.stat().st_size > 1000
     data = files('offline_earth').joinpath('data')
-    manifest = json.loads(data.joinpath('ASSETS.json').read_text())
+    manifest = json.loads(data.joinpath('ASSETS.json').read_text(encoding='utf-8'))
     import hashlib
     for name, entry in manifest['assets'].items():
         assert hashlib.sha256(data.joinpath(name).read_bytes()).hexdigest() == entry['sha256']

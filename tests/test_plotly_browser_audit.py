@@ -2,6 +2,7 @@
 import builtins
 import importlib.util
 import json
+import ntpath
 from pathlib import Path
 
 import pytest
@@ -47,7 +48,7 @@ def test_failure_writes_reviewable_report_and_returns_nonzero(monkeypatch, tmp_p
         raise AssertionError('Injected audit failure')
     monkeypatch.setattr(audit, 'run_audit', fail)
     assert audit.main(['--output-dir', str(tmp_path)]) == 1
-    result = json.loads((tmp_path / 'plotly_browser_audit.json').read_text())
+    result = json.loads((tmp_path / 'plotly_browser_audit.json').read_text(encoding='utf-8'))
     assert result['status'] == 'failed'
     assert result['script_errors'] == ['Injected JavaScript failure']
     assert 'Injected audit failure' in result['error']
@@ -56,7 +57,7 @@ def test_failure_writes_reviewable_report_and_returns_nonzero(monkeypatch, tmp_p
 def test_success_report(monkeypatch, tmp_path):
     monkeypatch.setattr(audit, 'run_audit', lambda args, report: report.update(scene={'verified': True}))
     assert audit.main(['--output-dir', str(tmp_path)]) == 0
-    assert json.loads((tmp_path / 'plotly_browser_audit.json').read_text())['status'] == 'passed'
+    assert json.loads((tmp_path / 'plotly_browser_audit.json').read_text(encoding='utf-8'))['status'] == 'passed'
 
 
 def test_scene_uses_public_data_and_actual_webgl_metrics():
@@ -84,14 +85,21 @@ def test_nonpositive_timeout_rejected_before_output(tmp_path, timeout):
     assert not out.exists()
 
 
-def test_output_normalized_and_failure_keeps_runtime_metadata(monkeypatch, tmp_path):
+@pytest.mark.parametrize('home_expansion', ['native', 'windows'])
+def test_output_normalized_and_failure_keeps_runtime_metadata(monkeypatch, tmp_path, home_expansion):
+    # pathlib uses HOME on POSIX but USERPROFILE on Windows.
     monkeypatch.setenv('HOME', str(tmp_path))
+    monkeypatch.setenv('USERPROFILE', str(tmp_path))
+    if home_expansion == 'windows':
+        monkeypatch.setattr(Path, 'expanduser', lambda path: Path(ntpath.expanduser(str(path))))
+    seen = []
     def fail(args, report):
-        assert args.output_dir == tmp_path / 'audit'
+        seen.append(args.output_dir)
         raise RuntimeError('Browser unavailable')
     monkeypatch.setattr(audit, 'run_audit', fail)
     assert audit.main(['--output-dir', '~/audit', '--browser-arg=--example']) == 1
-    report = json.loads((tmp_path / 'audit' / 'plotly_browser_audit.json').read_text())
+    assert seen == [tmp_path / 'audit']
+    report = json.loads((tmp_path / 'audit' / 'plotly_browser_audit.json').read_text(encoding='utf-8'))
     assert report['runtime']['platform']
     assert report['runtime']['python']
     assert report['runtime']['headless'] is True
@@ -116,7 +124,7 @@ def test_launch_failure_preserves_html_hash_and_selected_executable(monkeypatch,
     from tools import browser_support
     sync_api = pytest.importorskip('playwright.sync_api')
     def generate(target):
-        target.write_text('<html>embedded scene</html>')
+        target.write_text('<html>embedded scene</html>', encoding='utf-8')
         return [{'xyz_km': [[7000, 0, 0]]}]
     def fail_launch(pw, args):
         raise RuntimeError('Injected launch failure')
@@ -154,6 +162,6 @@ def test_scene_requires_public_visible_surface_evidence():
 def test_final_recorded_errors_never_pass(monkeypatch, tmp_path, kind):
     monkeypatch.setattr(audit, 'run_audit', lambda args, report: report[kind].append('Late failure'))
     assert audit.main(['--output-dir', str(tmp_path)]) == 1
-    result = json.loads((tmp_path / 'plotly_browser_audit.json').read_text())
+    result = json.loads((tmp_path / 'plotly_browser_audit.json').read_text(encoding='utf-8'))
     assert result['status'] == 'failed'
     assert result[kind] == ['Late failure']

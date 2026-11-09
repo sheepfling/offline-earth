@@ -75,7 +75,7 @@ def test_canvas_launch_failure_writes_failed_report(monkeypatch, tmp_path):
     monkeypatch.setattr(canvas_browser_audit, 'resolve_browser_executable', lambda *a: '/existing/chrome')
     paths = tuple(tmp_path / p for p in ('scene.html', 'scene.png', 'report.json'))
     assert canvas_browser_audit.run_canvas_audit([], ecef=True, paths=paths) == 1
-    report = json.loads(paths[2].read_text())
+    report = json.loads(paths[2].read_text(encoding='utf-8'))
     assert report['passed'] is False
     assert 'Injected launch failure' in report['error']
     assert len(report['html_sha256']) == 64
@@ -117,7 +117,7 @@ def test_canvas_final_capture_cannot_leave_false_pass(monkeypatch, tmp_path, sna
     monkeypatch.setattr(canvas_browser_audit, 'exercise_canvas', lambda *a, **kw: {})
     paths = tuple(tmp_path / p for p in ('scene.html', 'scene.png', 'report.json'))
     assert canvas_browser_audit.run_canvas_audit([], ecef=True, paths=paths) == 1
-    report = json.loads(paths[2].read_text())
+    report = json.loads(paths[2].read_text(encoding='utf-8'))
     assert report['passed'] is False
     assert report.get('capture_error') if snapshot_fails else report['network_attempts']
 
@@ -156,7 +156,7 @@ globalThis.EventSource = class {constructor() {throw Error('Leaked eventsource')
 })().catch(e => {console.error(e); process.exitCode = 1});
 '''
     script = setup + NETWORK_GUARD_SCRIPT.removeprefix('<script>').removesuffix('</script>') + exercise
-    run = subprocess.run([node, '-e', script], capture_output=True, text=True, check=True)
+    run = subprocess.run([node, '-e', script], capture_output=True, text=True, encoding='utf-8', check=True)
     result = json.loads(run.stdout)
     assert [item['kind'] for item in result['attempts']] == ['fetch', 'fetch', 'xhr', 'websocket', 'eventsource', 'beacon', 'csp']
     assert result['originalCalls'] == [['fetch', 'data:text/plain,local']]
