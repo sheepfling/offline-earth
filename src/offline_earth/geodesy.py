@@ -103,7 +103,8 @@ def project_orthographic_ecef(
     visible = True
     if determinant >= 0:
         sqrt_d = sqrt(determinant)
-        lo = (-bb - sqrt_d) / (2*aa)
         hi = (-bb + sqrt_d) / (2*aa)
-        visible = not (hi > 1.0 and (lo > 1.0 or cc < -1e-12))
+        # A self-hit near t=0 does not cancel a later Earth exit.
+        # Keep the existing one-meter tolerance for intersections at the origin.
+        visible = not (hi > 1.0)
     return OrthographicPoint(u, v, visible)
