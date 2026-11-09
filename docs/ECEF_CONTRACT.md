@@ -102,8 +102,8 @@ values raise `ValueError` before positions are interpreted. No conversion is
 performed. Legacy JSON omitting any or all metadata remains supported and uses
 ECEF meters and elapsed seconds, as also expressed by `ecef_m` and `time_s`.
 This applies to wrapped trajectory collections and single-trajectory JSON.
-Writers emit `"units": "meters"`. Files using the former `"metres"` spelling must
-change that metadata value to `"meters"`; their numeric ECEF coordinates do not change.
+Writers emit `"units": "meters"`. Older JSON files with a different unit spelling
+must update that metadata value to `"meters"`; their numeric ECEF coordinates do not change.
 
 ## Public paths and coordinate types
 

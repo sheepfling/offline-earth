@@ -144,3 +144,12 @@ def test_json_serializes_meters_and_preserves_coordinates(tmp_path):
     write_trajectories(target, [trajectory])
     assert json.loads(target.read_text())['units'] == 'meters'
     assert read_trajectories(target) == [trajectory]
+
+
+def test_user_facing_docs_and_examples_use_meter_spelling(pytestconfig):
+    root = pytestconfig.rootpath
+    paths = [root / "README.md", *root.joinpath("docs").rglob("*.md"),
+             *root.joinpath("examples").rglob("*.html"),
+             *root.joinpath("examples/data").glob("*.json")]
+    for path in paths:
+        assert "metre" not in path.read_text(encoding="utf-8").lower(), path

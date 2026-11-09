@@ -94,6 +94,7 @@ def test_actual_catalog_covers_all_backends_and_inputs_offline(tmp_path, monkeyp
     parser = Links(); parser.feed(html)
     assert not parser.scripts
     assert 'One planet' not in html and 'Every perspective' not in html
+    assert 'metre' not in html.lower()
     for path in parser.links + parser.images:
         assert not path.startswith(('http:', 'https:', '//'))
         assert (out/path).is_file()
