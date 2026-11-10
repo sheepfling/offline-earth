@@ -208,3 +208,5 @@ Canvas uses fixed view extent; `extent_earth_radii` currently applies to the Mat
 The Plotly initial display choices are more limited than Canvas; its imagery layer may include
 borders. No promise that arbitrary future optional-dependency releases remain offline-safe.
 
+
+See [horizon numerical conventions](docs/NUMERICS.md) for grazing-intersection rounding.

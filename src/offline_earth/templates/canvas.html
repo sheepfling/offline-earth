@@ -115,16 +115,24 @@ function xyzVisible(s,b) {
  const Rm=earthConstants.radius_m, x=s[1]/Rm,y=s[2]/Rm,z=s[3]/Rm;
  const u=x*b.e[0]+y*b.e[1]+z*b.e[2];
  const v=x*b.n[0]+y*b.n[1]+z*b.n[2];
- // WGS84 ray/ellipsoid intersection toward camera. Coordinates in Earth radii.
- const wa=1/((earthConstants.a_m/Rm)**2), wb=1/((earthConstants.b_m/Rm)**2);
- const aa=wa*(b.f[0]**2+b.f[1]**2)+wb*b.f[2]**2;
- const bb=2*(wa*(x*b.f[0]+y*b.f[1])+wb*z*b.f[2]);
- const cc=wa*(x*x+y*y)+wb*z*z-1;
- const det=bb*bb-4*aa*cc;
+ // Use meters, matching Python, independent of the display radius.
+ const px=s[1],py=s[2],pz=s[3];
+ const wa=1/(earthConstants.a_m**2),wb=1/(earthConstants.b_m**2);
+ const aa=wa*b.f[0]*b.f[0]+wa*b.f[1]*b.f[1]+wb*b.f[2]*b.f[2];
+ const bx=wa*px*b.f[0],by=wa*py*b.f[1],bz=wb*pz*b.f[2];
+ const bb=2*(bx+by+bz),squaredRadius=wa*px*px+wa*py*py+wb*pz*pz;
+ const cc=squaredRadius-1;
+ let det=bb*bb-4*aa*cc;
+ // gamma(32) binary64 forward-error envelope; see docs/NUMERICS.md.
+ const unitRoundoff=Number.EPSILON/2;
+ const gamma32=32*unitRoundoff/(1-32*unitRoundoff);
+ const absoluteBb=2*(Math.abs(bx)+Math.abs(by)+Math.abs(bz));
+ const roundoff=gamma32*(absoluteBb*absoluteBb+4*aa*(squaredRadius+1));
+ if(Number.isFinite(roundoff) && det<0 && det>=-roundoff)det=0;
  let visible=true;
  if(det>=0){const root=Math.sqrt(det),hi=(-bb+root)/(2*aa);
    // Ignore near-origin self-hits, but still count a later Earth exit.
-   visible=!(hi>1/Rm);}
+   visible=!(hi>1);}
  return {u,v,visible};
 }
 function ecefAt(samples,t){

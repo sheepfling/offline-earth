@@ -7,9 +7,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import atan2, cos, degrees, hypot, isfinite, radians, sin, sqrt
+from sys import float_info
 
 from .constants import EARTH_RADIUS_M, WGS84_A_M, WGS84_B_M, WGS84_E2
 from .geometry import Degrees, OrthographicPoint, camera_basis
+
+
+# gamma(32), with binary64 unit roundoff u = epsilon/2. See NUMERICS.md for
+# the expanded-polynomial error bound and its conservative tangent convention.
+_RAY_DISCRIMINANT_ROUNDOFF = 32 * (float_info.epsilon / 2) / (1 - 32 * (float_info.epsilon / 2))
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,11 +101,23 @@ def project_orthographic_ecef(
     u = sum(a*b for a, b in zip(p, east)) / display_radius_m
     v = sum(a*b for a, b in zip(p, north)) / display_radius_m
     # Ray from position toward camera; any positive intersection blocks sight.
-    weights = (1 / WGS84_A_M**2, 1 / WGS84_A_M**2, 1 / WGS84_B_M**2)
-    aa = sum(w * f*f for w, f in zip(weights, forward))
-    bb = 2 * sum(w * x*f for w, x, f in zip(weights, p, forward))
-    cc = sum(w * x*x for w, x in zip(weights, p)) - 1
+    wa, wb = 1 / WGS84_A_M**2, 1 / WGS84_B_M**2
+    fx, fy, fz = forward
+    x, y, z = p
+    # Explicit order matches Canvas, including Python versions with improved sum().
+    aa = wa*fx*fx + wa*fy*fy + wb*fz*fz
+    bx, by, bz = wa*x*fx, wa*y*fy, wb*z*fz
+    bb = 2 * (bx + by + bz)
+    squared_radius = wa*x*x + wa*y*y + wb*z*z
+    cc = squared_radius - 1
     determinant = bb*bb - 4*aa*cc
+    # Bound cancellation using unsigned terms, not abs(cc) or abs(bb).
+    absolute_bb = 2 * (abs(bx) + abs(by) + abs(bz))
+    roundoff = _RAY_DISCRIMINANT_ROUNDOFF * (
+        absolute_bb*absolute_bb + 4*aa*(squared_radius + 1)
+    )
+    if isfinite(roundoff) and -roundoff <= determinant < 0:
+        determinant = 0.0
     visible = True
     if determinant >= 0:
         sqrt_d = sqrt(determinant)
