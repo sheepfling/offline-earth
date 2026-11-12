@@ -1,6 +1,8 @@
 """Surface self-intersections must not hide a later Earth exit intersection."""
 import json
-from math import inf, nextafter
+from decimal import Decimal, localcontext
+from random import Random
+from math import inf, nextafter, sqrt
 import shutil
 import subprocess
 
@@ -8,6 +10,7 @@ import pytest
 
 from offline_earth.constants import EARTH_RADIUS_M, WGS84_A_M, WGS84_B_M
 from offline_earth.geodesy import EcefPosition, geodetic_to_ecef, project_orthographic_ecef
+from offline_earth.geometry import camera_basis
 
 
 A, B = WGS84_A_M, WGS84_B_M
@@ -40,6 +43,57 @@ for lon, lat in ((17, 23), (-95, -51), (132, 80)):
         (f'near_surface_{lon}_{lat}', xyz, lon, lat, True),
         (f'far_surface_{lon}_{lat}', tuple(-value for value in xyz), lon, lat, False),
     ])
+
+
+# A tangent to the scaled unit sphere maps back to an ellipsoid tangent.
+# Include the exact operation order from the reported longitude-1 regression.
+for lon, lat in ((0, 0), (1, 0), (17, 23), (-95, -51), (132, 80), (37, 90)):
+    forward, east, _ = camera_basis(lon, lat)
+    scaled_east = (east[0], east[1], 0.0)
+    length = sqrt(sum(value*value for value in scaled_east))
+    tangent = (A*scaled_east[0]/length, A*scaled_east[1]/length, 0.0)
+    # East is perpendicular to forward even after ellipsoid scaling.
+    for distance in (A, 42_164_000.0):
+        for offset, visible in ((-1, False), (-0.001, False), (0, False),
+                                (0.001, True), (1, True)):
+            xyz = tuple(-distance*f + t*(1+offset/A) for f, t in zip(forward, tangent))
+            CASES.append((f'limb_{lon}_{lat}_{distance}_{offset}', xyz, lon, lat, visible))
+    # Tangencies at/behind the sample still do not block sight.
+    for distance in (-A, 0.0, 0.5, 2.0):
+        xyz = tuple(-distance*f+t for f, t in zip(forward, tangent))
+        CASES.append((f'tangent_distance_{lon}_{lat}_{distance}', xyz, lon, lat, distance <= 1))
+
+
+def _decimal_visible(xyz, lon, lat):
+    """Independent 90-digit quadratic oracle for the supplied binary64 inputs."""
+    forward, _, _ = camera_basis(lon, lat)
+    with localcontext() as context:
+        context.prec = 90
+        p = [Decimal.from_float(float(x)) for x in xyz]
+        f = [Decimal.from_float(x) for x in forward]
+        axes = [Decimal.from_float(x) for x in (A, A, B)]
+        aa = sum((v/a)**2 for v, a in zip(f, axes))
+        bb = 2 * sum(x*v/a**2 for x, v, a in zip(p, f, axes))
+        cc = sum((x/a)**2 for x, a in zip(p, axes)) - 1
+        determinant = bb*bb - 4*aa*cc
+        return determinant < 0 or (-bb + determinant.sqrt())/(2*aa) <= 1
+
+
+# Non-grazing randomized surface-to-GEO cases have an independent high precision
+# expectation, not a second binary64 copy of the production algorithm.
+_rng = Random(20261110)
+for index in range(150):
+    lon, lat = _rng.uniform(-180, 180), _rng.uniform(-90, 90)
+    position = geodetic_to_ecef(_rng.uniform(-180, 180), _rng.uniform(-90, 90),
+                               _rng.uniform(-100, 42_164_000))
+    xyz = (position.x_m, position.y_m, position.z_m)
+    CASES.append((f'decimal_oracle_{index}', xyz, lon, lat, _decimal_visible(xyz, lon, lat)))
+
+
+def test_near_limb_offsets_agree_with_high_precision_geometry():
+    for name, xyz, lon, lat, visible in CASES:
+        if name.startswith('limb_') and not name.endswith('_0'):
+            assert _decimal_visible(xyz, lon, lat) is visible, name
 
 
 @pytest.mark.parametrize('xyz,lon,lat,visible', [case[1:] for case in CASES],
